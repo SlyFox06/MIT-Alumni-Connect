@@ -1,4 +1,4 @@
-<h1>atharv Portal</h1>
+<h1>MIT Portal</h1>
 atharv Portal is a comprehensive web application developed using PHP, Bootstrap, DataTables, jQuery, and MySQL. The portal serves as a centralized platform for atharv engagement, offering a seamless and user-friendly experience.
 <br><br>
 
