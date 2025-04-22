@@ -311,7 +311,8 @@ try {
             transform: scale(1.05);
         }
         
-        /* atharv Map Section */
+        /* Alumni Map
+ Section */
         .map-section {
             margin-bottom: 3rem;
         }
@@ -598,7 +599,8 @@ try {
                     <div class="card-icon">
                         <i class="bi bi-map"></i>
                     </div>
-                    <h3>atharv Map</h3>
+                    <h3>Alumni Map
+</h3>
                     <p>Explore where MIT Alumni are located around the world.</p>
                     <a href="#" class="btn btn-outline-primary">View Map</a>
                 </div>
