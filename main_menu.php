@@ -18,7 +18,7 @@ $email = $user['email'] ?? '';
 try {
     $atharv_count = $conn->query("SELECT COUNT(*) FROM user_table")->fetch_row()[0];
     $event_count = $conn->query("SELECT COUNT(*) FROM event_table WHERE event_date >= CURDATE()")->fetch_row()[0];
-    
+
     // Check if advertisements table exists before querying
     $job_count = 0;
     $table_exists = $conn->query("SHOW TABLES LIKE 'advertisements_table'");
@@ -34,17 +34,18 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MIT Alumni Portal | Dashboard</title>
-    
+
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         :root {
             --primary: #4361ee;
@@ -55,7 +56,7 @@ try {
             --dark: #212529;
             --space-unit: 1.5rem;
         }
-        
+
         body {
             font-family: 'Poppins', sans-serif;
             background-color: #f5f7ff;
@@ -64,11 +65,11 @@ try {
             overflow-x: hidden;
             padding-top: 70px;
         }
-        
+
         /* Navbar Styles */
         .navbar {
             background: white;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
             padding: 0.8rem 1rem;
             position: fixed;
             top: 0;
@@ -76,17 +77,17 @@ try {
             right: 0;
             z-index: 1030;
         }
-        
+
         .navbar-brand {
             font-weight: 700;
             color: var(--primary);
             font-size: 1.5rem;
         }
-        
+
         .navbar-brand span {
             color: var(--secondary);
         }
-        
+
         .nav-link {
             font-weight: 500;
             color: var(--dark);
@@ -95,12 +96,21 @@ try {
             border-radius: 5px;
             transition: all 0.3s ease;
         }
+
+        .nav-link:hover {
+            color: var(--secondary);
+            /* slight color shift */
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
         
-        .nav-link:hover, .nav-link.active {
+
+        .nav-link:hover,
+        .nav-link.active {
             color: var(--primary);
             background: rgba(67, 97, 238, 0.1);
         }
-        
+
         /* Banner Styles */
         .banner {
             position: relative;
@@ -108,7 +118,7 @@ try {
             height: 80vh;
             overflow: hidden;
         }
-        
+
         .banner-slide {
             position: absolute;
             width: 100%;
@@ -117,20 +127,21 @@ try {
             left: 0;
             opacity: 0;
             transition: opacity 1.5s ease-in-out;
-            background-color: var(--primary); /* Fallback color */
+            background-color: var(--primary);
+            /* Fallback color */
         }
-        
+
         .banner-slide.active {
             opacity: 1;
         }
-        
+
         .slide-image {
             width: 100%;
             height: 100%;
             object-fit: cover;
             object-position: center;
         }
-        
+
         .banner-content {
             position: absolute;
             top: 50%;
@@ -143,35 +154,35 @@ try {
             max-width: 1200px;
             padding: 0 20px;
         }
-        
+
         .banner-content h1 {
             font-size: 4rem;
             font-weight: 700;
             margin-bottom: 1.5rem;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
             animation: fadeInDown 1s ease;
         }
-        
+
         .banner-content p {
             margin: 0 auto 2.5rem;
             font-weight: 300;
             line-height: 1.6;
             font-size: 1.3rem;
             max-width: 700px;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
+            text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
             animation: fadeIn 1.5s ease;
         }
-        
+
         /* Button Animation Styles */
         .banner-btn {
             font-size: 1.1rem;
-            width: 220px;
+            width: 252px;
             padding: 15px 0;
             text-align: center;
             border-radius: 50px;
             font-weight: 600;
             border: 2px solid white;
-            background: transparent;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
             color: white;
             cursor: pointer;
             position: relative;
@@ -179,78 +190,113 @@ try {
             transition: all 0.4s ease;
             z-index: 1;
             transform: translateY(0);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             margin: 0 10px;
         }
-        
+
         .banner-btn:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            background: rgba(255,255,255,0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            background: rgba(247, 247, 247, 0.76);
+            background-color: white;
+            color: black;
+            transition: all 0, 5s ease;
         }
-        
+
         .banner-btn:active {
             transform: translateY(-2px);
         }
-        
+
+
+
         /* Animations */
         .pulse-animation {
             animation: pulse 2s infinite ease-in-out;
         }
-        
+
         .float-animation {
             animation: float 3s infinite ease-in-out;
         }
-        
+
         .glow-animation {
             animation: glow 2s infinite;
         }
-        
+
         @keyframes pulse {
-            0% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-5px) scale(1.05); }
-            100% { transform: translateY(0) scale(1); }
+            0% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-5px) scale(1.05);
+            }
+
+            100% {
+                transform: translateY(0) scale(1);
+            }
         }
-        
+
         @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
         }
-        
+
         @keyframes glow {
-            0% { box-shadow: 0 0 5px rgba(255,255,255,0.5); }
-            50% { box-shadow: 0 0 20px rgba(255,255,255,0.8); }
-            100% { box-shadow: 0 0 5px rgba(255,255,255,0.5); }
+            0% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            }
+
+            50% {
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            }
+
+            100% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            }
         }
-        
+
         @keyframes fadeInDown {
             from {
                 opacity: 0;
                 transform: translate3d(0, -20px, 0);
             }
+
             to {
                 opacity: 1;
                 transform: translate3d(0, 0, 0);
             }
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
-        
+
         /* Main Content Styles */
         .main-content-container {
             background-color: white;
             border-radius: 20px;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.05);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.05);
             margin-top: -50px;
             position: relative;
             z-index: 2;
             padding: 3rem;
         }
-        
+
         /* Stats Cards */
         .stat-card {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
@@ -259,57 +305,57 @@ try {
             padding: 1.5rem;
             transition: transform 0.3s ease;
         }
-        
+
         .stat-card:hover {
             transform: translateY(-5px);
         }
-        
+
         .stat-number {
             font-size: 2.5rem;
             font-weight: 700;
         }
-        
+
         /* Feature Cards */
         .feature-card {
             background: white;
             border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: none;
             overflow: hidden;
             height: 100%;
         }
-        
+
         .feature-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
-        
+
         /* Gallery Section */
         .gallery-section {
             margin-bottom: 3rem;
         }
-        
+
         .gallery-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1.5rem;
         }
-        
+
         .gallery-title {
             font-size: 1.75rem;
             font-weight: 600;
             color: #2c3e50;
             margin: 0;
         }
-        
+
         .gallery-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 1.5rem;
         }
-        
+
         .gallery-item {
             position: relative;
             border-radius: 8px;
@@ -318,39 +364,39 @@ try {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: all 0.3s ease;
         }
-        
+
         .gallery-item:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
         }
-        
+
         .gallery-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             transition: transform 0.5s ease;
         }
-        
+
         .gallery-item:hover img {
             transform: scale(1.05);
         }
-        
+
         /* Alumni Map Section */
         .map-section {
             margin-bottom: 3rem;
         }
-        
+
         .map-header {
             margin-bottom: 1.5rem;
         }
-        
+
         .map-title {
             font-size: 1.75rem;
             font-weight: 600;
             color: #2c3e50;
             margin: 0;
         }
-        
+
         .map-container {
             background-color: #f8f9fa;
             border-radius: 12px;
@@ -362,24 +408,24 @@ try {
             position: relative;
             overflow: hidden;
         }
-        
+
         .map-container iframe {
             width: 100%;
             height: 100%;
             border: none;
         }
-        
+
         .map-placeholder {
             text-align: center;
             padding: 2rem;
         }
-        
+
         .map-icon {
             font-size: 3rem;
             color: #6c757d;
             margin-bottom: 1rem;
         }
-        
+
         /* Divider */
         .section-divider {
             border: 0;
@@ -387,93 +433,94 @@ try {
             background-color: #e9ecef;
             margin: 2.5rem 0;
         }
-        
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .main-content-container {
                 margin-top: -30px;
                 padding: 1.5rem;
             }
-            
+
             .banner {
                 height: 70vh;
             }
-            
+
             .banner-content h1 {
                 font-size: 2.5rem;
             }
-            
+
             .banner-content p {
                 font-size: 1.1rem;
             }
-            
+
             .banner-btn {
                 width: 180px;
                 padding: 12px 0;
                 font-size: 1rem;
             }
-            
+
             .gallery-grid {
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             }
-            
+
             .gallery-title,
             .map-title {
                 font-size: 1.5rem;
             }
         }
-        
+
         @media (max-width: 576px) {
             .banner {
                 height: 60vh;
             }
-            
+
             .banner-content h1 {
                 font-size: 2rem;
             }
-            
+
             .banner-content p {
                 font-size: 1rem;
                 margin-bottom: 1.5rem;
             }
-            
+
             .banner-buttons {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .banner-btn {
                 width: 160px;
                 padding: 10px 0;
                 font-size: 0.9rem;
                 margin-bottom: 0.5rem;
             }
-            
+
             .stat-number {
                 font-size: 2rem;
             }
-            
+
             .gallery-grid {
                 grid-template-columns: 1fr 1fr;
                 gap: 1rem;
             }
-            
+
             .gallery-item {
                 height: 150px;
             }
-            
+
             .map-container {
                 height: 300px;
             }
         }
     </style>
 </head>
+
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="#">
-                <span>MIT</span> ALUMNI 
+                <span>MIT</span> ALUMNI
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -505,35 +552,50 @@ try {
 
     <!-- Banner Section -->
     <div class="banner">
-    <!-- Slide 1 - Local Image -->
-    <div class="banner-slide active">
-        <img src="images\clgmain.jpg" alt="College Main Building" class="slide-image">
-    </div>
-    
-    <!-- Slide 2 - External Image -->
-    <div class="banner-slide">
-        <img src="images\clgmain2.jpg" 
-             alt="Graduation Ceremony" 
-             class="slide-image"
-             loading="lazy">
-    </div>
-    
-    <!-- Slide 3 - External Image -->
-    <div class="banner-slide">
-        <img src="images\clgmain3.jpg" 
-             alt="College Meeting" 
-             class="slide-image"
-             loading="lazy">
-    </div>
-</div>
-        <div class="banner-content">
-            <h1>MIT Alumni PORTAL</h1>
-            <p>Connect with fellow graduates, discover career opportunities, and stay engaged with your alma mater.</p>
-            <div class="banner-buttons">
-                <button class="banner-btn pulse-animation" onclick="location.href='view_events.php'">UPCOMING EVENTS</button>
-                <button class="banner-btn float-animation" onclick="location.href='view_advertisements.php'">CAREER OPPORTUNITIES</button>
-            </div>
+        <!-- Slide 1 - Local Image -->
+        <div class="banner-slide active">
+            <img src="images\clgmain.jpg" alt="College Main Building" class="slide-image">
         </div>
+
+        <!-- Slide 2 - External Image -->
+        <div class="banner-slide">
+            <img src="images\clgmain2.jpg"
+                alt="Graduation Ceremony"
+                class="slide-image"
+                loading="lazy">
+        </div>
+
+        <!-- Slide 3 - External Image -->
+        <div class="banner-slide">
+            <img src="images\clgmain3.jpg"
+                alt="College Meeting"
+                class="slide-image"
+                loading="lazy">
+        </div>
+    </div>
+    <div class="banner-content">
+        <h1>MIT Alumni PORTAL</h1>
+        <p style="color: #f1f1f1; font-weight: 700; font-size: 1.25rem; position: relative; display: inline-block; padding-bottom: 5px;">
+            <strong>Connect with fellow graduates, discover career opportunities, and stay engaged with your alma mater.</strong>
+            <span style="position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: #DD7228; transform: scaleX(0); transform-origin: right; transition: transform 0.3s ease;"></span>
+        </p>
+
+        <script>
+            // Add hover animation
+            document.querySelector('p').addEventListener('mouseenter', function() {
+                this.querySelector('span').style.transform = 'scaleX(1)';
+                this.querySelector('span').style.transformOrigin = 'left';
+            });
+            document.querySelector('p').addEventListener('mouseleave', function() {
+                this.querySelector('span').style.transform = 'scaleX(0)';
+                this.querySelector('span').style.transformOrigin = 'right';
+            });
+        </script>
+        <div class="banner-buttons">
+            <button class="banner-btn pulse-animation" onclick="location.href='view_events.php'">UPCOMING EVENTS</button>
+            <button class="banner-btn float-animation" onclick="location.href='view_advertisements.php'">CAREER OPPORTUNITIES</button>
+        </div>
+    </div>
     </div>
 
     <div class="container main-content-container">
@@ -594,7 +656,7 @@ try {
                     <a href="update_profile.php?email=<?php echo htmlspecialchars($email); ?>" class="btn btn-outline-primary">Manage Profile</a>
                 </div>
             </div>
-            
+
             <div class="col-md-6 col-lg-4" data-animate="fadeIn" data-delay="100">
                 <div class="feature-card p-4">
                     <div class="card-icon">
@@ -605,7 +667,7 @@ try {
                     <a href="view_events.php" class="btn btn-outline-primary">View Events</a>
                 </div>
             </div>
-            
+
             <div class="col-md-6 col-lg-4" data-animate="fadeIn" data-delay="200">
                 <div class="feature-card p-4">
                     <div class="card-icon">
@@ -616,7 +678,7 @@ try {
                     <a href="view_advertisements.php" class="btn btn-outline-primary">Browse Jobs</a>
                 </div>
             </div>
-            
+
             <div class="col-md-6 col-lg-4" data-animate="fadeIn" data-delay="300">
                 <div class="feature-card p-4">
                     <div class="card-icon">
@@ -627,19 +689,19 @@ try {
                     <a href="#" class="btn btn-outline-primary">Read News</a>
                 </div>
             </div>
-            
+
             <div class="col-md-6 col-lg-4" data-animate="fadeIn" data-delay="400">
                 <div class="feature-card p-4">
                     <div class="card-icon">
                         <i class="bi bi-map"></i>
                     </div>
                     <h3>Alumni Map
-</h3>
+                    </h3>
                     <p>Explore where MIT Alumni are located around the world.</p>
                     <a href="#" class="btn btn-outline-primary">View Map</a>
                 </div>
             </div>
-            
+
             <div class="col-md-6 col-lg-4" data-animate="fadeIn" data-delay="500">
                 <div class="feature-card p-4">
                     <div class="card-icon">
@@ -713,108 +775,111 @@ try {
 
         <hr class="section-divider">
 
-            <div class="map-section">
-        <div class="map-header">
-            <h2 class="map-title"><i class="bi bi-map me-2"></i> Alumni Network Map</h2>
-        </div>
-        <div class="map-container">
-            <iframe 
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3784.216909222709!2d73.9922803143696!3d18.46398297594758!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2e8d0d9f8e0a5%3A0x9d6c5b8b1a5d5b5e!2sMIT%20ADT%20University%2C%20Railway%20Station%2C%20MIT%20ADT%20Campus%2C%20Rajbaugh%2C%20Solapur%20-%20Pune%20Hwy%2C%20near%20Bharat%20Petrol%20Pump%2C%20Loni%20Kalbhor%2C%20Maharashtra%20412201!5e0!3m2!1sen!2sin!4v1620000000000!5m2!1sen!2sin" 
-                width="100%" 
-                height="100%" 
-                style="border:0;" 
-                allowfullscreen="" 
-                loading="lazy">
-            </iframe>
-        </div>
-        <div class="text-center mt-3">
-       
+        <div class="map-section">
+            <div class="map-header">
+                <h2 class="map-title"><i class="bi bi-map me-2"></i> Alumni Network Map</h2>
+            </div>
+            <div class="map-container">
+                <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3784.216909222709!2d73.9922803143696!3d18.46398297594758!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2e8d0d9f8e0a5%3A0x9d6c5b8b1a5d5b5e!2sMIT%20ADT%20University%2C%20Railway%20Station%2C%20MIT%20ADT%20Campus%2C%20Rajbaugh%2C%20Solapur%20-%20Pune%20Hwy%2C%20near%20Bharat%20Petrol%20Pump%2C%20Loni%20Kalbhor%2C%20Maharashtra%20412201!5e0!3m2!1sen!2sin!4v1620000000000!5m2!1sen!2sin"
+                    width="100%"
+                    height="100%"
+                    style="border:0;"
+                    allowfullscreen=""
+                    loading="lazy">
+                </iframe>
+            </div>
+            <div class="text-center mt-3">
 
-    <!-- Back to Top Button -->
-    <div class="back-to-top" id="backToTop">
-        <i class="bi bi-arrow-up"></i>
-    </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Banner Slideshow
-        let currentSlide = 0;
-        const slides = document.querySelectorAll('.banner-slide');
-        const totalSlides = slides.length;
-        
-        function showSlide(index) {
-            slides.forEach(slide => slide.classList.remove('active'));
-            slides[index].classList.add('active');
-        }
-        
-        function nextSlide() {
-            currentSlide = (currentSlide + 1) % totalSlides;
-            showSlide(currentSlide);
-        }
-        
-        // Change slide every 5 seconds
-        setInterval(nextSlide, 5000);
-        
-        // Back to Top Button
-        const backToTop = document.getElementById('backToTop');
-        
-        window.addEventListener('scroll', () => {
-            if (window.pageYOffset > 300) {
-                backToTop.classList.add('show');
-            } else {
-                backToTop.classList.remove('show');
-            }
-        });
-        
-        backToTop.addEventListener('click', () => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
-        });
-        
-        // Animation Script
-        document.addEventListener('DOMContentLoaded', function() {
-            const animateElements = document.querySelectorAll('[data-animate]');
-            
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('animated');
-                        observer.unobserve(entry.target);
+                <!-- Back to Top Button -->
+                <div class="back-to-top" id="backToTop">
+                    <i class="bi bi-arrow-up"></i>
+                </div>
+
+                <!-- Bootstrap JS -->
+                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+                <script>
+                    // Banner Slideshow
+                    let currentSlide = 0;
+                    const slides = document.querySelectorAll('.banner-slide');
+                    const totalSlides = slides.length;
+
+                    function showSlide(index) {
+                        slides.forEach(slide => slide.classList.remove('active'));
+                        slides[index].classList.add('active');
                     }
-                });
-            }, { threshold: 0.1 });
-            
-            animateElements.forEach(el => {
-                const delay = el.getAttribute('data-delay') || 0;
-                el.style.transitionDelay = `${delay}ms`;
-                observer.observe(el);
-            });
 
-            // Button hover effects
-            const buttons = document.querySelectorAll('.banner-btn');
-            
-            buttons.forEach(button => {
-                // Stop animation on hover
-                button.addEventListener('mouseenter', function() {
-                    this.style.animation = 'none';
-                    this.style.transform = 'translateY(-5px)';
-                });
-                
-                // Restart animation when not hovering
-                button.addEventListener('mouseleave', function() {
-                    if (this.classList.contains('pulse-animation')) {
-                        this.style.animation = 'pulse 2s infinite ease-in-out';
-                    } else if (this.classList.contains('float-animation')) {
-                        this.style.animation = 'float 3s infinite ease-in-out';
+                    function nextSlide() {
+                        currentSlide = (currentSlide + 1) % totalSlides;
+                        showSlide(currentSlide);
                     }
-                    this.style.transform = 'translateY(0)';
-                });
-            });
-        });
-    </script>
+
+                    // Change slide every 5 seconds
+                    setInterval(nextSlide, 5000);
+
+                    // Back to Top Button
+                    const backToTop = document.getElementById('backToTop');
+
+                    window.addEventListener('scroll', () => {
+                        if (window.pageYOffset > 300) {
+                            backToTop.classList.add('show');
+                        } else {
+                            backToTop.classList.remove('show');
+                        }
+                    });
+
+                    backToTop.addEventListener('click', () => {
+                        window.scrollTo({
+                            top: 0,
+                            behavior: 'smooth'
+                        });
+                    });
+
+                    // Animation Script
+                    document.addEventListener('DOMContentLoaded', function() {
+                        const animateElements = document.querySelectorAll('[data-animate]');
+
+                        const observer = new IntersectionObserver((entries) => {
+                            entries.forEach(entry => {
+                                if (entry.isIntersecting) {
+                                    entry.target.classList.add('animated');
+                                    observer.unobserve(entry.target);
+                                }
+                            });
+                        }, {
+                            threshold: 0.1
+                        });
+
+                        animateElements.forEach(el => {
+                            const delay = el.getAttribute('data-delay') || 0;
+                            el.style.transitionDelay = `${delay}ms`;
+                            observer.observe(el);
+                        });
+
+                        // Button hover effects
+                        const buttons = document.querySelectorAll('.banner-btn');
+
+                        buttons.forEach(button => {
+                            // Stop animation on hover
+                            button.addEventListener('mouseenter', function() {
+                                this.style.animation = 'none';
+                                this.style.transform = 'translateY(-5px)';
+                            });
+
+                            // Restart animation when not hovering
+                            button.addEventListener('mouseleave', function() {
+                                if (this.classList.contains('pulse-animation')) {
+                                    this.style.animation = 'pulse 2s infinite ease-in-out';
+                                } else if (this.classList.contains('float-animation')) {
+                                    this.style.animation = 'float 3s infinite ease-in-out';
+                                }
+                                this.style.transform = 'translateY(0)';
+                            });
+                        });
+                    });
+                </script>
 </body>
+
 </html>
