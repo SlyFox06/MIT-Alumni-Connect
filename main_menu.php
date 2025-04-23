@@ -105,11 +105,11 @@ try {
         }
         
 
-        .nav-link:hover,
+        /* .nav-link:hover,
         .nav-link.active {
             color: var(--primary);
             background: rgba(67, 97, 238, 0.1);
-        }
+        } */
 
         /* Banner Styles */
         .banner {
@@ -520,7 +520,7 @@ try {
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="#">
-                <span>MIT</span> ALUMNI
+                <span>MIT</span> ALUMNI PORTAL
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -528,7 +528,7 @@ try {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="view_alumni.php"><i class="bi bi-people nav-bi"></i> Alumni</a>
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people nav-bi"></i> Alumni</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
