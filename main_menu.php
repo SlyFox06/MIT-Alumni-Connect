@@ -103,36 +103,44 @@ try {
         
         /* Banner Styles */
         .banner {
+            position: relative;
             width: 100%;
             height: 80vh;
-            position: relative;
             overflow: hidden;
         }
         
         .banner-slide {
+            position: absolute;
             width: 100%;
             height: 100%;
-            position: absolute;
             top: 0;
             left: 0;
             opacity: 0;
             transition: opacity 1.5s ease-in-out;
-            background-size: cover;
-            background-position: center;
+            background-color: var(--primary); /* Fallback color */
         }
         
         .banner-slide.active {
             opacity: 1;
         }
         
-        .banner-content {
+        .slide-image {
             width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        
+        .banner-content {
             position: absolute;
             top: 50%;
-            transform: translateY(-50%);
+            left: 50%;
+            transform: translate(-50%, -50%);
             text-align: center;
             color: white;
             z-index: 2;
+            width: 90%;
+            max-width: 1200px;
             padding: 0 20px;
         }
         
@@ -140,7 +148,7 @@ try {
             font-size: 4rem;
             font-weight: 700;
             margin-bottom: 1.5rem;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.7);
             animation: fadeInDown 1s ease;
         }
         
@@ -150,7 +158,7 @@ try {
             line-height: 1.6;
             font-size: 1.3rem;
             max-width: 700px;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.5);
             animation: fadeIn 1.5s ease;
         }
         
@@ -172,48 +180,64 @@ try {
             z-index: 1;
             transform: translateY(0);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            margin: 0 10px;
         }
         
         .banner-btn:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            background: rgba(255,255,255,0.2);
         }
         
         .banner-btn:active {
             transform: translateY(-2px);
         }
         
-        /* Pulse animation */
-        @keyframes pulse {
-            0% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-5px) scale(1.05); }
-            100% { transform: translateY(0) scale(1); }
-        }
-        
+        /* Animations */
         .pulse-animation {
             animation: pulse 2s infinite ease-in-out;
-        }
-        
-        /* Floating animation */
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
         }
         
         .float-animation {
             animation: float 3s infinite ease-in-out;
         }
         
-        /* Glow animation */
+        .glow-animation {
+            animation: glow 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-5px) scale(1.05); }
+            100% { transform: translateY(0) scale(1); }
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
         @keyframes glow {
             0% { box-shadow: 0 0 5px rgba(255,255,255,0.5); }
             50% { box-shadow: 0 0 20px rgba(255,255,255,0.8); }
             100% { box-shadow: 0 0 5px rgba(255,255,255,0.5); }
         }
         
-        .glow-animation {
-            animation: glow 2s infinite;
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translate3d(0, -20px, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
         /* Main Content Styles */
@@ -311,8 +335,7 @@ try {
             transform: scale(1.05);
         }
         
-        /* Alumni Map
- Section */
+        /* Alumni Map Section */
         .map-section {
             margin-bottom: 3rem;
         }
@@ -328,25 +351,23 @@ try {
             margin: 0;
         }
         
+        .map-container {
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #dee2e6;
+            position: relative;
+            overflow: hidden;
+        }
         
-    .map-container {
-        background-color: #f8f9fa;
-        border-radius: 12px;
-        height: 400px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid #dee2e6;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .map-container iframe {
-        width: 100%;
-        height: 100%;
-        border: none;
-    }
-
+        .map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
         
         .map-placeholder {
             text-align: center;
@@ -403,6 +424,10 @@ try {
         }
         
         @media (max-width: 576px) {
+            .banner {
+                height: 60vh;
+            }
+            
             .banner-content h1 {
                 font-size: 2rem;
             }
@@ -448,7 +473,7 @@ try {
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="#">
-                <span>MIT</span> ALUMNI
+                <span>MIT</span> ALUMNI 
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -480,18 +505,27 @@ try {
 
     <!-- Banner Section -->
     <div class="banner">
-        <!-- Slide 1 -->
-        <div class="banner-slide active" style="background-image: url('https://source.unsplash.com/random/1920x1080/?university,campus')"></div>
-        
-        <!-- Slide 2 -->
-        <div class="banner-slide" style="background-image: url('https://source.unsplash.com/random/1920x1080/?graduation,ceremony')"></div>
-        
-        <!-- Slide 3 -->
-        <div class="banner-slide" style="background-image: url('https://source.unsplash.com/random/1920x1080/?atharv,meeting')"></div>
-        
-        <!-- Slide 4 -->
-        <div class="banner-slide" style="background-image: url('https://source.unsplash.com/random/1920x1080/?lecture,hall')"></div>
-        
+    <!-- Slide 1 - Local Image -->
+    <div class="banner-slide active">
+        <img src="images\clgmain.jpg" alt="College Main Building" class="slide-image">
+    </div>
+    
+    <!-- Slide 2 - External Image -->
+    <div class="banner-slide">
+        <img src="images\clgmain2.jpg" 
+             alt="Graduation Ceremony" 
+             class="slide-image"
+             loading="lazy">
+    </div>
+    
+    <!-- Slide 3 - External Image -->
+    <div class="banner-slide">
+        <img src="images\clgmain3.jpg" 
+             alt="College Meeting" 
+             class="slide-image"
+             loading="lazy">
+    </div>
+</div>
         <div class="banner-content">
             <h1>MIT Alumni PORTAL</h1>
             <p>Connect with fellow graduates, discover career opportunities, and stay engaged with your alma mater.</p>
@@ -507,7 +541,7 @@ try {
         <div class="row mb-5" data-animate="fadeIn">
             <div class="col-md-8">
                 <h1 class="fw-bold mb-3">Welcome back, <?php echo htmlspecialchars($first_name); ?>!</h1>
-                <p class="lead text-muted">Connect with your atharv network and discover new opportunities.</p>
+                <p class="lead text-muted">Connect with your alumni network and discover new opportunities.</p>
             </div>
         </div>
 
@@ -589,7 +623,7 @@ try {
                         <i class="bi bi-newspaper"></i>
                     </div>
                     <h3>News</h3>
-                    <p>Stay updated with the latest announcements from MIT and atharv.</p>
+                    <p>Stay updated with the latest announcements from MIT and alumni.</p>
                     <a href="#" class="btn btn-outline-primary">Read News</a>
                 </div>
             </div>
@@ -612,7 +646,7 @@ try {
                         <i class="bi bi-people"></i>
                     </div>
                     <h3>Mentorship</h3>
-                    <p>Connect with mentors or become one to help fellow atharv.</p>
+                    <p>Connect with mentors or become one to help fellow alumni.</p>
                     <a href="#" class="btn btn-outline-primary">Learn More</a>
                 </div>
             </div>
@@ -620,7 +654,7 @@ try {
 
         <!-- Success Stories -->
         <div class="mb-5" data-animate="fadeIn">
-            <h2 class="mb-4 fw-bold"><i class="bi bi-trophy me-2"></i> atharv Success Stories</h2>
+            <h2 class="mb-4 fw-bold"><i class="bi bi-trophy me-2"></i> Alumni Success Stories</h2>
             <div class="row g-4">
                 <div class="col-md-6">
                     <div class="feature-card p-4 h-100">
@@ -648,7 +682,7 @@ try {
                                 <small class="text-muted">Class of 2008 | Research Scientist</small>
                             </div>
                         </div>
-                        <p>"Through the atharv mentorship program, I found guidance that shaped my research career path."</p>
+                        <p>"Through the alumni mentorship program, I found guidance that shaped my research career path."</p>
                         <a href="#" class="btn btn-sm btn-outline-primary">Read Story</a>
                     </div>
                 </div>
@@ -681,7 +715,7 @@ try {
 
             <div class="map-section">
         <div class="map-header">
-            <h2 class="map-title"><i class="bi bi-map me-2"></i> atharv Network Map</h2>
+            <h2 class="map-title"><i class="bi bi-map me-2"></i> Alumni Network Map</h2>
         </div>
         <div class="map-container">
             <iframe 

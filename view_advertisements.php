@@ -183,7 +183,7 @@ if (isset($_SESSION['flash_mode'])) {
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
             <a class="navbar-brand" href="main_menu.php">
-                <span>MIT</span> atharv
+                <span>MIT</span> Alumni
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -194,7 +194,7 @@ if (isset($_SESSION['flash_mode'])) {
                         <a class="nav-link" href="main_menu.php"><i class="bi bi-house-door me-1"></i> Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="view_atharv.php"><i class="bi bi-people me-1"></i> atharv</a>
+                        <a class="nav-link" href="view_atharv.php"><i class="bi bi-people me-1"></i> Alumni</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>

@@ -1,4 +1,5 @@
 <?php
+require 'vendor/autoload.php'; // Load PHPMailer
 include 'db_controller.php';
 $conn->select_db("atharv");
 
@@ -36,18 +37,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = "Invalid email format";
     } else {
-        // Send email
-        $to = $alumnusToContactEmail;
-        $subject = "Message from atharv Portal";
-        $headers = "From: $email";
-        $email_body = "You have received a new message from $name ($email, $phone):\n\n$message";
+        // Create PHPMailer instance
+        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
         
-        if (mail($to, $subject, $email_body, $headers)) {
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com'; // Gmail SMTP server
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'your@gmail.com'; // Your Gmail
+            $mail->Password   = 'your-app-password'; // App password
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+            $mail->Port       = 465;
+            
+            // Recipients
+            $mail->setFrom($email, $name);
+            $mail->addAddress($alumnusToContactEmail);
+            
+            // Content
+            $mail->isHTML(false);
+            $mail->Subject = 'Message from atharv Portal';
+            $mail->Body    = "You have received a new message from $name ($email, $phone):\n\n$message";
+            
+            $mail->send();
             $_SESSION['message_sent'] = true;
             header("Location: message_success.php?email=" . urlencode($alumnusToContactEmail));
             exit();
-        } else {
-            $error = "Failed to send message. Please try again later.";
+        } catch (Exception $e) {
+            $error = "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
         }
     }
 }
@@ -79,7 +96,7 @@ $loggedUserEmail = $_SESSION['logged_account']['email'] ?? '';
     </style>
 </head>
 <body>
-    <
+    
     
     <div class="container my-5">
         <div class="contact-form">

@@ -120,7 +120,7 @@
                     <img src="images/gallery.jpg" class="card-img-top" alt="Gallery Photo">
                     <div class="card-body">
                         <h5 class="card-title">Photo Gallery</h5>
-                        <p class="card-text">Manage photos for the atharv gallery showcasing events and activities</p>
+                        <p class="card-text">Manage photos for the Alumni gallery showcasing events and activities</p>
                     </div>
                     <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="manage_gallery.php">Manage Photo Gallery</a> </div>
                 </div>
@@ -132,7 +132,7 @@
                     <img src="images/success_stories.jpg" class="card-img-top" alt="Success Stories Photo">
                     <div class="card-body">
                         <h5 class="card-title">atharv Success Stories</h5>
-                        <p class="card-text">Manage inspiring success stories from our atharv community</p>
+                        <p class="card-text">Manage inspiring success stories from our Alumni community</p>
                     </div>
                     <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="manage_success_stories.php">Manage Success Stories</a> </div>
                 </div>
