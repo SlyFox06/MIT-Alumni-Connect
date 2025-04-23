@@ -101,7 +101,7 @@
                         if (!empty($loginErrors)) {
                             $_SESSION['form_data'] = $_POST;
                             $_SESSION['login_errors'] = $loginErrors;
-                            $_SESSION['verified'] = $verified;
+                            // $_SESSION['verified'] = $verified;
                         }
                     }
                 }

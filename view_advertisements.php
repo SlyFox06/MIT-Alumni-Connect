@@ -194,7 +194,7 @@ if (isset($_SESSION['flash_mode'])) {
                         <a class="nav-link" href="main_menu.php"><i class="bi bi-house-door me-1"></i> Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="view_atharv.php"><i class="bi bi-people me-1"></i> Alumni</a>
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people me-1"></i> Alumni</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>

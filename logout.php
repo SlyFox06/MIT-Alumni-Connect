@@ -1,18 +1,18 @@
 <?php
-    session_start();
+session_start();
+include 'flash_message.php'; // Make sure this is the correct path
 
-    // Return flash message
-    if (isset($_SESSION['logged_user']) || isset($_SESSION['logged_account'])) {
-        $_SESSION['flash_mode'] = "alert-success";
-        $_SESSION['flash'] = "You have successfully logged out.";
-    }
+// Set the flash message
+set_flash_message("You have successfully logged out.", "success");
 
-    // Unset most Session objects (Flash messages are still needed)
-    unset($_SESSION['logged_user']);
-    unset($_SESSION['logged_account']);
-    unset($_SESSION['form_data']);
-    unset($_SESSION['login_errors']);
-    unset($_SESSION['verified']);
+// Unset session data (but keep flash message until next load)
+unset($_SESSION['logged_user']);
+unset($_SESSION['logged_account']);
+unset($_SESSION['form_data']);
+unset($_SESSION['login_errors']);
+unset($_SESSION['verified']);
 
-    header('Location: main.php'); // Redirect to main
+
+header('Location: login.php');
+exit();
 ?>

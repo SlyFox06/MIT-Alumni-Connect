@@ -81,12 +81,17 @@ try {
         .navbar-brand {
             font-weight: 700;
             color: var(--primary);
-            font-size: 1.5rem;
+            font-size: 1.2rem;
         }
 
-        .navbar-brand span {
-            color: var(--secondary);
+        .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
         }
+
+        /* .navbar-brand span {
+            color: var(--secondary);
+        } */
 
         .nav-link {
             font-weight: 500;
@@ -94,7 +99,7 @@ try {
             padding: 0.5rem 1rem;
             margin: 0 0.2rem;
             border-radius: 5px;
-            transition: all 0.3s ease;
+            transition: all 0.3s ease-in-out;
         }
 
         .nav-link:hover {
@@ -543,7 +548,7 @@ try {
                         <a class="nav-link" href="update_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+                        <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
                     </li>
                 </ul>
             </div>

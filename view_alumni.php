@@ -11,6 +11,59 @@
             <!-- Bootstrap Icons --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
             <style>
+
+.navbar {
+            background: white;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+        }
+
+        .me-5 {
+    margin-right: -31rem !important;
+}
+
+        .navbar-brand {
+            font-weight: 700;
+            color: #3D1165;
+            font-size: 1.5rem;
+        }
+
+        /* .nav-bi {
+            font-size: 1.3rem;
+        } */
+
+        .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 1.5rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .nav-link:hover {
+            color: var(--secondary);
+            /* slight color shift */
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
+        
+
+        body {
+            padding-top: 80px;
+        }
+
+                
                 .card {
                     width: 25rem;
                     border: none;
@@ -50,18 +103,19 @@
 
                         <div class="collapse navbar-collapse me-5" id="navbarSupportedContent">
                             <ul class="navbar-nav mx-auto">
-                                <li class="nav-item mx-1">
-                                    <a class="nav-link px-5" href="main_menu.php"><i class="bi bi-house-door nav-bi"></i></a>
-                                </li>
-                                <li class="nav-item mx-1">
-                                    <a class="nav-link nav-main-active px-5" aria-current="page" href="view_Alumni.php"><i class="bi bi-people-fill nav-bi"></i></a>
-                                </li>
-                                <li class="nav-item mx-1">
-                                    <a class="nav-link px-5" href="view_events.php"><i class="bi bi-calendar-event nav-bi"></i></a>
-                                </li>
-                                <li class="nav-item mx-1">
-                                    <a class="nav-link px-5" href="view_advertisements.php"><i class="bi bi-megaphone nav-bi"></i></a>
-                                </li>
+                      <li class="nav-item">
+                        <a class="nav-link" href="main_menu.php"><i class="bi bi-people"></i> Home</a>
+                    </li>      
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
+                    </li>
+                    
                             </ul>
                         </div>
                         <?php include 'nav_user.php' ?>
