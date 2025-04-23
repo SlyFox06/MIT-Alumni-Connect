@@ -151,7 +151,7 @@
 
 <nav class="navbar sticky-top navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand mx-0 mb-0 h1" href="main_menu.php">atharv Portal</a>
+            <a class="navbar-brand mx-0 mb-0 h1" href="main_menu.php">MIT Alumni Portal</a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -163,7 +163,7 @@
                         <a class="nav-link px-5" href="main_menu.php"><i class="bi bi-house-door nav-bi "></i></a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link px-5" href="view_atharv.php"><i class="bi bi-people nav-bi"></i></a>
+                        <a class="nav-link px-5" href="view_alumni.php"><i class="bi bi-people nav-bi"></i></a>
                     </li>
                     <li class="nav-item mx-1">
                         <a class="nav-link nav-main-active px-5" href="view_events.php"><i class="bi bi-calendar-event nav-bi"></i></i></a>

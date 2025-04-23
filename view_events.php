@@ -184,7 +184,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['event_id'])) {
                         <a class="nav-link" href="main_menu.php"><i class="bi bi-house-door nav-bi"></i> Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="view_atharv.php"><i class="bi bi-people nav-bi"></i> atharv</a>
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people nav-bi"></i> Alumni</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link nav-main-active" href="view_events.php"><i class="bi bi-calendar-event-fill nav-bi"></i> Events</a>
