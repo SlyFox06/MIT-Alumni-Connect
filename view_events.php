@@ -174,7 +174,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['event_id'])) {
     <!-- Top Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="main_menu.php">MIT Alumni</a>
+            <a class="navbar-brand" href="main_menu.php">MIT Alumni Portal</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
