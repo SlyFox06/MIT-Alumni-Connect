@@ -16,3 +16,6 @@ if ($conn->connect_error) {
     // echo "✅ Connected to database successfully.";
 }
 ?>
+
+<!-- /* pwd is root 
+if issue persists keep the password part empty */ -->
