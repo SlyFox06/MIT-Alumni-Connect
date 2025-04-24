@@ -1,3 +1,164 @@
+<?php
+include 'db_controller.php';
+$conn->select_db("atharv");
+
+session_start();
+
+// Check if user is logged in
+if (!isset($_SESSION['logged_account'])) {
+    header('Location: login.php');
+    exit();
+}      
+
+// POST request
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    unset($errors);
+    
+    // Process regular fields
+    foreach ($_POST as $key => $value) {
+        // Skip custom_field array - we'll handle it separately
+        if ($key == 'custom_field') continue;
+        
+        // Trim only string values
+        $_POST[$key] = is_string($value) ? trim($value) : $value;
+        $value = is_string($value) ? trim($value) : $value;
+
+        // input validation
+        if ($key == 'date' && $value == '') {
+            $errors[$key] = '*Date is required.';
+        } elseif ($key == 'date') {
+            $verified[$key] = true;
+        }
+
+        if ($key == 'type' && $value == '') {
+            $errors[$key] = '*Type is required.';
+        } elseif ($key == 'type') {
+            $verified[$key] = true;
+        }
+
+        if ($key == 'title' && $value == '') {
+            $errors[$key] = '*Title is required.';
+        } elseif ($key == 'title' && strlen($value) >= 100) {
+            $errors[$key] = '*Title must be less than 100 characters.';
+        } elseif ($key == 'title') {
+            $verified[$key] = true;
+        }
+
+        if ($key == 'location' && $value == '') {
+            $errors[$key] = '*Location is required.';
+        } elseif ($key == 'location' && strlen($value) >= 50) {
+            $errors[$key] = '*Location must be less than 50 characters.';
+        } elseif ($key == 'location') {
+            $verified[$key] = true;
+        }
+
+        if ($key == 'description' && $value == '') {
+            $errors[$key] = '*Description is required.';
+        } elseif ($key == 'description' && strlen($value) >= 700) {
+            $errors[$key] = '*Description must be less than 700 characters.';
+        } elseif ($key == 'description') {
+            $verified[$key] = true;
+        }
+    }
+    
+    // Process custom fields
+    $custom_fields = [];
+    if (isset($_POST['custom_field']) && is_array($_POST['custom_field'])) {
+        foreach ($_POST['custom_field'] as $index => $field) {
+            if (!empty($field['label'])) {
+                // Clean the field data
+                $clean_field = [
+                    'type' => isset($field['type']) ? htmlspecialchars(trim($field['type'])) : 'text',
+                    'label' => htmlspecialchars(trim($field['label'])),
+                    'required' => isset($field['required']) ? 1 : 0
+                ];
+                
+                // Process options if present
+                if (isset($field['options']) && !empty(trim($field['options']))) {
+                    $options = array_map('trim', explode(',', $field['options']));
+                    $clean_field['options'] = array_map('htmlspecialchars', $options);
+                } else {
+                    $clean_field['options'] = [];
+                }
+                
+                $custom_fields[] = $clean_field;
+            }
+        }
+    }
+    $custom_fields_json = !empty($custom_fields) ? json_encode($custom_fields) : null;
+
+    // Image extension validation
+    if (isset($_FILES["image"]) && $_FILES["image"]["error"] == 0) {
+        $fileExtension = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
+        if (!in_array($fileExtension, ["jpg", "png"])) {
+            $errors['image'] = '*Photo must be of type jpg or png.';
+        }
+    }
+
+    if (empty($errors)) {
+        // Use default image if no image uploaded (based on selected type)
+        if ($_FILES["image"]["name"] == "" && $_POST['type'] == "Event") {
+            $_FILES["image"]["name"] = "default_events.jpg";
+        } elseif ($_FILES["image"]["name"] == "" && $_POST['type'] == "News") {
+            $_FILES["image"]["name"] = "default_news.png";
+        }
+
+        try {
+            // Add event/news into DB with custom fields
+            $SQLCreateEventNews = $conn->prepare("INSERT INTO event_table (title, location, description, event_date, photo, type, custom_fields) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $SQLCreateEventNews->bind_param("sssssss", $_POST['title'], $_POST['location'], $_POST['description'], $_POST['date'], $_FILES["image"]["name"], $_POST['type'], $custom_fields_json);
+            
+            if ($SQLCreateEventNews->execute() == true) {
+                $insertedID = $SQLCreateEventNews->insert_id;
+                // Add image into storage
+                if (isset($_FILES["image"]) && $_FILES["image"]["error"] == 0) {
+                    $uploadDir = "images/";
+                    $fileExtension = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
+                    $fileName = $_POST['type'].$insertedID.".".$fileExtension;
+                    
+                    if (in_array($fileExtension, ["jpg", "png"])) {
+                        move_uploaded_file($_FILES["image"]["tmp_name"], $uploadDir . $fileName);
+                    }
+                    
+                    // Update db with new image path
+                    $conn->query("UPDATE event_table SET photo = '$fileName' WHERE id = '$insertedID'");
+                }
+
+                // Set flash message and redirect to events page
+                $_SESSION['flash_mode'] = "alert-success";
+                $_SESSION['flash'] = $_POST['type']." created successfully.";
+                header('Location: view_events.php');
+                exit();
+            } else {
+                $_SESSION['flash_mode'] = "alert-warning";
+                $_SESSION['flash'] = "An error has occurred creating ".$_POST['type'];
+                header('Location: view_events.php');
+                exit();
+            }
+        } catch (Exception $e) {
+            $_SESSION['flash_mode'] = "alert-warning";
+            $_SESSION['flash'] = "An error has occurred creating ".$_POST['type'];
+            header('Location: view_events.php');
+            exit();
+        }
+    } else {
+        // Keep current data in session
+        $_SESSION['form_data'] = $_POST;
+        $_SESSION['errors'] = $errors;
+        $_SESSION['verified'] = $verified;
+    }
+}
+
+// Assign session data or initialize new array
+$formData = isset($_SESSION['form_data']) ? $_SESSION['form_data'] : array();
+$errors = isset($_SESSION['errors']) ? $_SESSION['errors'] : array();
+$verified = isset($_SESSION['verified']) ? $_SESSION['verified'] : array();
+
+// Clear session data
+unset($_SESSION['form_data']);
+unset($_SESSION['errors']);
+unset($_SESSION['verified']);
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,130 +187,27 @@
             pointer-events: all !important;
             cursor: default;
         }
+        
+        .custom-field-container {
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .custom-field-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        .field-actions {
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body class="admin-bg">
-    <?php
-        include 'db_controller.php';
-        $conn->select_db("atharv");
-
-        session_start();
-
-        // Check if user is logged in
-        if (!isset($_SESSION['logged_account'])) {
-            header('Location: login.php');
-            exit();
-        }      
-
-        // POST request
-        if ($_SERVER["REQUEST_METHOD"] == "POST") {
-            unset($errors);
-            foreach ($_POST as $key => $value) {
-                $_POST[$key] = trim($_POST[$key]);
-                $value = trim($value);
-
-                // input validation
-                if ($key == 'date' && $value == '')
-                    $errors[$key] = '*Date is required.';
-                elseif ($key == 'date')
-                    $verified[$key] = true;
-
-                if ($key == 'type' && $value == '')
-                    $errors[$key] = '*Type is required.';
-                elseif ($key == 'type')
-                    $verified[$key] = true;
-
-                if ($key == 'title' && $value == '')
-                    $errors[$key] = '*Title is required.';
-                elseif ($key == 'title' && strlen($value) >= 100)
-                    $errors[$key] = '*Title must be less than 100 characters.';
-                elseif ($key == 'title')
-                    $verified[$key] = true;
-
-                if ($key == 'location' && $value == '')
-                    $errors[$key] = '*Location is required.';
-                elseif ($key == 'location' && strlen($value) >= 50)
-                    $errors[$key] = '*Location must be less than 50 characters.';
-                elseif ($key == 'location')
-                    $verified[$key] = true;
-
-                if ($key == 'description' && $value == '')
-                    $errors[$key] = '*Description is required.';
-                elseif ($key == 'description' && strlen($value) >= 700)
-                    $errors[$key] = '*Description must be less than 700 characters.';
-                elseif ($key == 'description')
-                    $verified[$key] = true;
-            }
-            // Image extension validation
-            if (isset($_FILES["image"]) && $_FILES["image"]["error"] == 0) {
-                $fileExtension = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
-                if (!in_array($fileExtension, ["jpg", "png"]))
-                    $errors['image'] = '*Photo must be of type jpg or png.';
-            }
-
-            if (empty($errors)) {
-                // Use default image if no image uploaded (based on selected type)
-                if ($_FILES["image"]["name"] == "" && $_POST['type'] == "Event")
-                    $_FILES["image"]["name"] = "default_events.jpg";
-                elseif ($_FILES["image"]["name"] == "" && $_POST['type'] == "News")
-                    $_FILES["image"]["name"] = "default_news.png";
-
-                try {
-                    // Add event/news into DB
-                    $SQLCreateEventNews = $conn->prepare("INSERT INTO event_table (title, location, description, event_date, photo, type) VALUES (?, ?, ?, ?, ?, ?)");
-                    $SQLCreateEventNews->bind_param("ssssss",$_POST['title'],$_POST['location'],$_POST['description'],$_POST['date'],$_FILES["image"]["name"],$_POST['type']);
-                    if ($SQLCreateEventNews->execute() == true) {
-                        $insertedID = $SQLCreateEventNews->insert_id;
-                        // Add image into storage
-                        if (isset($_FILES["image"]) && $_FILES["image"]["error"] == 0) {
-                            $uploadDir = "images/";
-                            $fileExtension = pathinfo($_FILES["image"]["name"], PATHINFO_EXTENSION);
-                            $fileName = $_POST['type'].$insertedID.".".$fileExtension;
-                            
-                            if (in_array($fileExtension, ["jpg", "png"])) // Ensure file type is jpg, png
-                                move_uploaded_file($_FILES["image"]["tmp_name"], $uploadDir . $fileName);
-                            
-                            // Update db with new image path
-                            $conn->query("UPDATE event_table SET photo = '$fileName' WHERE id = '$insertedID'");
-                        }
-
-                        // Set flash message and redirect to events page
-                        $_SESSION['flash_mode'] = "alert-success";
-                        $_SESSION['flash'] = $_POST['type']." created successfully.";
-                        header('Location: view_events.php');
-                        exit();
-                    } else {
-                        $_SESSION['flash_mode'] = "alert-warning";
-                        $_SESSION['flash'] = "An error has occurred creating ".$_POST['type'];
-                        header('Location: view_events.php');
-                        exit();
-                    }
-                } catch (Exception $e) {
-                    $_SESSION['flash_mode'] = "alert-warning";
-                    $_SESSION['flash'] = "An error has occurred creating ".$_POST['type'];
-                    header('Location: view_events.php');
-                    exit();
-                }
-            } else {
-                // Keep current data in session
-                $_SESSION['form_data'] = $_POST;
-                $_SESSION['errors'] = $errors;
-                $_SESSION['verified'] = $verified;
-            }
-        }
-
-        // Assign session data or initialize new array
-        $formData = isset($_SESSION['form_data']) ? $_SESSION['form_data'] : array();
-        $errors = isset($_SESSION['errors']) ? $_SESSION['errors'] : array();
-        $verified = isset($_SESSION['verified']) ? $_SESSION['verified'] : array();
-
-        // Clear session data
-        unset($_SESSION['form_data']);
-        unset($_SESSION['errors']);
-        unset($_SESSION['verified']);
-    ?>
-
-<nav class="navbar sticky-top navbar-expand-lg">
+    <nav class="navbar sticky-top navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand mx-0 mb-0 h1" href="main_menu.php">MIT Alumni Portal</a>
 
@@ -258,6 +316,22 @@
                         </div>
                     </div>
 
+                    <!-- Custom Fields Section -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0">Custom Registration Fields</h5>
+                            <small class="text-muted">Add additional fields for event registration</small>
+                        </div>
+                        <div class="card-body">
+                            <div id="customFieldsContainer" class="custom-field-container">
+                                <!-- Existing fields will be added here by JavaScript -->
+                            </div>
+                            <button type="button" class="btn btn-outline-primary" id="addFieldBtn">
+                                <i class="bi bi-plus-circle"></i> Add Field
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Footer? -->
                     <div class="row justify-content-end align-items-center mb-4">
                         <div class="col ms-2"><span class="text-secondary fst-italic"><strong class="text-black">*</strong>Indicates required field</span></div>
@@ -324,14 +398,98 @@
         const previewImage = document.getElementById("previewImage");
 
         imageInput.addEventListener("change", function () {
-        if (imageInput.files && imageInput.files[0]) {
-            const reader = new FileReader();
-            // update img
-            reader.onload = function (e) {
-                previewImage.src = e.target.result;
+            if (imageInput.files && imageInput.files[0]) {
+                const reader = new FileReader();
+                // update img
+                reader.onload = function (e) {
+                    previewImage.src = e.target.result;
+                };
+                reader.readAsDataURL(imageInput.files[0]); // read image as data URL
+            }
+        });
+
+        // Custom Fields Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const fieldTypes = {
+                'text': 'Text Field',
+                'checkbox': 'Checkbox',
+                'radio': 'Radio Buttons',
+                'select': 'Dropdown',
+                'textarea': 'Text Area'
             };
-            reader.readAsDataURL(imageInput.files[0]); // read image as data URL
-        }
+
+            const container = document.getElementById('customFieldsContainer');
+            const addBtn = document.getElementById('addFieldBtn');
+
+            // Add new field
+            addBtn.addEventListener('click', function() {
+                const fieldId = Date.now();
+                const fieldHtml = `
+                    <div class="custom-field-item" id="field-${fieldId}">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Field Type</label>
+                                <select name="custom_field[${fieldId}][type]" class="form-select field-type" required>
+                                    ${Object.entries(fieldTypes).map(([value, text]) => 
+                                        `<option value="${value}">${text}</option>`
+                                    ).join('')}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Label</label>
+                                <input type="text" name="custom_field[${fieldId}][label]" class="form-control" placeholder="Field Label" required>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check pt-4">
+                                    <input type="checkbox" name="custom_field[${fieldId}][required]" id="required-${fieldId}" class="form-check-input">
+                                    <label class="form-check-label" for="required-${fieldId}">Required</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="options-container mt-2" style="display: none;">
+                            <label class="form-label">Options (comma separated)</label>
+                            <input type="text" name="custom_field[${fieldId}][options]" class="form-control options-input" placeholder="Option 1, Option 2, Option 3">
+                            <small class="text-muted">Only for radio buttons and dropdowns</small>
+                        </div>
+                        <div class="field-actions text-end">
+                            <button type="button" class="btn btn-sm btn-outline-danger remove-field" data-field-id="${fieldId}">
+                                <i class="bi bi-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', fieldHtml);
+                
+                // Add event listener for the new field type change
+                document.querySelector(`#field-${fieldId} .field-type`).addEventListener('change', function() {
+                    toggleOptions(this);
+                });
+            });
+
+            // Toggle options field based on field type
+            function toggleOptions(selectElement) {
+                const fieldItem = selectElement.closest('.custom-field-item');
+                const optionsContainer = fieldItem.querySelector('.options-container');
+                const type = selectElement.value;
+                
+                if (type === 'radio' || type === 'select') {
+                    optionsContainer.style.display = 'block';
+                } else {
+                    optionsContainer.style.display = 'none';
+                }
+            }
+
+            // Remove field
+            container.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-field') || e.target.closest('.remove-field')) {
+                    const btn = e.target.classList.contains('remove-field') ? e.target : e.target.closest('.remove-field');
+                    const fieldId = btn.getAttribute('data-field-id');
+                    document.getElementById(`field-${fieldId}`).remove();
+                }
+            });
+
+            // Initialize with one field
+            addBtn.click();
         });
 
         window.onload = (event) => {
