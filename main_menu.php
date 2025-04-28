@@ -10,8 +10,8 @@ if (!isset($_SESSION['logged_account'])) {
 include 'db_controller.php';
 
 // Safely get user data with fallbacks
-$user = $_SESSION['logged_account'];
-$first_name = $user['first_name'] ?? 'atharv';
+$user = $_SESSION['logged_user'] ?? [];
+$first_name = $user['first_name'] ?? 'User';// More generic fallback
 $email = $user['email'] ?? '';
 
 // Safely fetch stats for the dashboard
@@ -607,7 +607,7 @@ try {
         <!-- Welcome Section -->
         <div class="row mb-5" data-animate="fadeIn">
             <div class="col-md-8">
-                <h1 class="fw-bold mb-3">Welcome back, <?php echo htmlspecialchars($first_name); ?>!</h1>
+                <h1 class="fw-bold mb-3">Welcome back, <?php echo htmlspecialchars($first_name); ?> !</h1>
                 <p class="lead text-muted">Connect with your alumni network and discover new opportunities.</p>
             </div>
         </div>
