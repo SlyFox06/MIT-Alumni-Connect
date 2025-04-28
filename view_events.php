@@ -1,80 +1,130 @@
 <?php
 include 'db_controller.php';
 $conn->select_db("atharv");
+
 session_start();
-include 'logged_user.php';
 
-// Handle Sign Up form submission
-$signup_message = '';
-$signup_status = '';
-if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['event_id'])) {
-    $event_id = $_POST['event_id'];
-    $participant_email = $_SESSION['logged_account']['email'];
+// Check if user is logged in
+if (!isset($_SESSION['logged_account'])) {
+    header('Location: login.php');
+    exit();
+}
 
-    // Get event details
-    $event_stmt = $conn->prepare("SELECT * FROM event_table WHERE id = ?");
-    $event_stmt->bind_param("i", $event_id);
-    $event_stmt->execute();
-    $event = $event_stmt->get_result()->fetch_assoc();
-    $event_stmt->close();
+// Get user role safely
+$userRole = $_SESSION['logged_account']['role'] ?? 'Guest';
 
-    // Check if already registered
-    $check_stmt = $conn->prepare("SELECT * FROM event_registration_table WHERE event_id = ? AND participant_email = ?");
-    $check_stmt->bind_param("is", $event_id, $participant_email);
-    $check_stmt->execute();
-    $result = $check_stmt->get_result();
+// Flash message handling
+if (isset($_SESSION['flash'])) {
+    $flash = $_SESSION['flash'];
+    $flash_mode = $_SESSION['flash_mode'] ?? 'alert-info';
+    unset($_SESSION['flash']);
+    unset($_SESSION['flash_mode']);
+}
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['event_id'])) {
+    $eventId = $_POST['event_id'];
+    $responses = $_POST['custom_response'] ?? [];
+    $userEmail = $_SESSION['logged_account']['email'];
     
-    if ($result->num_rows > 0) {
-        $signup_message = "You're already signed up for this event!";
-        $signup_status = "error";
-    } else {
-        // Register the user
-        $stmt = $conn->prepare("INSERT INTO event_registration_table (event_id, participant_email) VALUES (?, ?)");
-        $stmt->bind_param("is", $event_id, $participant_email);
+    try {
+        // Check if already registered
+        $checkStmt = $conn->prepare("SELECT * FROM event_registration_table WHERE event_id = ? AND participant_email = ?");
+        $checkStmt->bind_param("is", $eventId, $userEmail);
+        $checkStmt->execute();
+        $result = $checkStmt->get_result();
         
-        if ($stmt->execute()) {
-            $signup_message = "You have successfully signed up for '".$event['title']."'!";
-            $signup_status = "success";
-            
-            // Create immediate notification
-            $notification_message = "You signed up for: " . $event['title'] . " (".date('M j, Y', strtotime($event['event_date'])).")";
-            $notification_link = "view_events.php";
-            
-            $notif_stmt = $conn->prepare("INSERT INTO notifications (user_email, message, link) VALUES (?, ?, ?)");
-            $notif_stmt->bind_param("sss", $participant_email, $notification_message, $notification_link);
-            $notif_stmt->execute();
-            $notif_stmt->close();
-            
-            // Create reminder notification if event is upcoming
-            $event_date = new DateTime($event['event_date']);
-            $today = new DateTime();
-            
-            if ($event_date > $today) {
-                // Reminder 1 day before
-                $reminder_date = (clone $event_date)->modify('-1 day')->format('Y-m-d H:i:s');
-                $reminder_message = "Reminder: " . $event['title'] . " is tomorrow!";
-                
-                $reminder_stmt = $conn->prepare("INSERT INTO notifications (user_email, message, link, created_at) VALUES (?, ?, ?, ?)");
-                $reminder_stmt->bind_param("ssss", $participant_email, $reminder_message, $notification_link, $reminder_date);
-                $reminder_stmt->execute();
-                $reminder_stmt->close();
-                
-                // Additional reminder 1 hour before (optional)
-                $reminder_date = (clone $event_date)->modify('-1 hour')->format('Y-m-d H:i:s');
-                $reminder_message = "Starts soon: " . $event['title'] . " at ".date('g:i a', strtotime($event['event_date']));
-                
-                $reminder_stmt = $conn->prepare("INSERT INTO notifications (user_email, message, link, created_at) VALUES (?, ?, ?, ?)");
-                $reminder_stmt->bind_param("ssss", $participant_email, $reminder_message, $notification_link, $reminder_date);
-                $reminder_stmt->execute();
-                $reminder_stmt->close();
-            }
+        if ($result->num_rows > 0) {
+            $_SESSION['flash'] = "You are already registered for this event!";
+            $_SESSION['flash_mode'] = "alert-warning";
         } else {
-            $signup_message = "Error signing up for the event: " . $stmt->error;
-            $signup_status = "error";
+            // Insert registration into database
+            $stmt = $conn->prepare("INSERT INTO event_registration_table (event_id, participant_email) VALUES (?, ?)");
+            $stmt->bind_param("is", $eventId, $userEmail);
+            $stmt->execute();
+            
+            $_SESSION['flash'] = "Successfully registered for the event!";
+            $_SESSION['flash_mode'] = "alert-success";
+            
+            // Create notification
+            $eventInfo = $conn->query("SELECT title, event_date FROM event_table WHERE id = $eventId")->fetch_assoc();
+            $message = "You signed up for: ".$eventInfo['title']." (".date('M j, Y', strtotime($eventInfo['event_date'])).")";
+            $conn->query("INSERT INTO notifications (user_email, message, link) VALUES ('$userEmail', '$message', 'view_events.php')");
+            
+            // Create reminder notifications
+            $reminderDate = date('Y-m-d', strtotime($eventInfo['event_date'] . ' -1 day'));
+            $conn->query("INSERT INTO notifications (user_email, message, link, created_at) VALUES (
+                '$userEmail', 
+                'Reminder: ".$eventInfo['title']." is tomorrow!', 
+                'view_events.php',
+                '$reminderDate 18:30:00'
+            )");
         }
-        $stmt->close();
+        
+        header("Location: view_events.php");
+        exit();
+    } catch (Exception $e) {
+        $_SESSION['flash'] = "Error registering for event: " . $e->getMessage();
+        $_SESSION['flash_mode'] = "alert-danger";
     }
-    $check_stmt->close();
+}
+
+// Apply filters
+$filterType = $_GET['filterType'] ?? 'All';
+$filterTime = $_GET['filterTime'] ?? 'All';
+$search = trim($_GET['search'] ?? '');
+
+// Build query conditions
+$conditions = [];
+$params = [];
+$types = '';
+
+if ($filterType != 'All') {
+    $conditions[] = "type = ?";
+    $params[] = $filterType;
+    $types .= 's';
+}
+
+if ($filterTime != 'All') {
+    date_default_timezone_set('Asia/Kuching');
+    $todayDate = date('Y-m-d');
+    if ($filterTime == 'Upcoming') {
+        $conditions[] = "event_date >= ?";
+        $params[] = $todayDate;
+        $types .= 's';
+    } elseif ($filterTime == 'Past') {
+        $conditions[] = "event_date < ?";
+        $params[] = $todayDate;
+        $types .= 's';
+    }
+}
+
+if (!empty($search)) {
+    $searchTerm = "%$search%";
+    $conditions[] = "(LOWER(title) LIKE ? OR LOWER(location) LIKE ? OR LOWER(description) LIKE ?)";
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+    $types .= 'sss';
+}
+
+// Build final query
+$whereClause = empty($conditions) ? "" : "WHERE " . implode(" AND ", $conditions);
+$query = "SELECT * FROM event_table $whereClause ORDER BY event_date DESC";
+
+// Prepare and execute query
+$stmt = $conn->prepare($query);
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+$stmt->execute();
+$result = $stmt->get_result();
+
+$events = [];
+if ($result->num_rows > 0) {
+    while ($row = $result->fetch_assoc()) {
+        $events[] = $row;
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -82,96 +132,56 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['event_id'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Events/News</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>View Events</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <style>
-        /* Navbar Styles */
         .navbar {
-            background: linear-gradient(135deg, #4361ee, #3f37c9);
-            box-shadow: 0 4px 20px rgba(67, 97, 238, 0.15);
-            padding: 1rem 0;
+            background-color: #343a40 !important;
         }
-        
-        .navbar-brand {
-            font-weight: 700;
-            color: white;
-            font-size: 1.5rem;
-        }
-        
-        .nav-link {
-            font-weight: 500;
-            color: rgba(255,255,255,0.8);
-            padding: 0.5rem 1rem;
-            margin: 0 0.2rem;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-        
-        .nav-link:hover, .nav-link.active {
-            color: white;
-            background: rgba(255,255,255,0.1);
-        }
-        
-        .nav-main-active {
-            color: white !important;
-            background: rgba(255,255,255,0.2) !important;
-        }
-        
         .nav-bi {
-            font-size: 1.2rem;
+            -webkit-text-stroke: 0.5px;
         }
-        
-        .navbar-toggler {
-            border: none;
-            color: rgba(255,255,255,0.8);
+        .nav-main-active {
+            font-weight: 500;
+            color: white !important;
         }
-        
-        .navbar-toggler:focus {
-            box-shadow: none;
+        .event-card {
+            transition: transform 0.3s ease;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
-        .dropdown-menu {
-            border: none;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        /* Card Styles */
-        .card {
-            width: 100%;
-            border: none;
-            box-shadow: 0 2px 2px rgba(0,0,0,.08), 0 0 6px rgba(0,0,0,.05);
-            transition: transform 0.3s;
-        }
-        .card:hover {
+        .event-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        .event-image {
+        .card-img-top {
             height: 200px;
             object-fit: cover;
         }
-        .signup-btn {
-            margin: 15px;
+        .registration-form {
+            display: none;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-top: 15px;
         }
-        .upcoming-badge {
-            background-color: #0d6efd;
+        .form-group {
+            margin-bottom: 15px;
         }
-        .past-badge {
-            background-color: #6c757d;
-        }
-        
-        /* Notification Bell */
         .notification-badge {
-            font-size: 0.6rem;
             top: 5px;
             right: 5px;
+            font-size: 0.6rem;
+        }
+        .breadcrumb-link {
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
-    <!-- Top Navigation Bar -->
+    <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
         <div class="container">
             <a class="navbar-brand" href="main_menu.php">MIT Alumni Portal</a>
@@ -220,7 +230,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['event_id'])) {
                                 <li>
                                     <a class="dropdown-item <?= $note['is_read'] ? '' : 'fw-bold' ?>" href="<?= $note['link'] ?>">
                                         <?= htmlspecialchars($note['message']) ?>
-                                        <small class="text-muted"><?= $note['created_at'] ?></small>
+                                        <small class="text-muted"><?= date('M j, g:i a', strtotime($note['created_at'])) ?></small>
                                     </a>
                                 </li>
                             <?php endwhile; ?>
@@ -236,7 +246,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['event_id'])) {
                             <i class="bi bi-person-circle nav-bi"></i> 
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="update_profile.php?email=<?= htmlspecialchars($_SESSION['logged_account']['email']) ?>"><i class="bi bi-person me-2"></i>Profile</a></li>
+                            <li><a class="dropdown-item" href="view_profile.php?email=<?= htmlspecialchars($_SESSION['logged_account']['email']) ?>"><i class="bi bi-person me-2"></i>Profile</a></li>
                             <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
@@ -249,235 +259,249 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['event_id'])) {
 
     <!-- Breadcrumb -->
     <div class="container my-3">
-        <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
+        <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a class="breadcrumb-link text-secondary link-underline link-underline-opacity-0" href="main_menu.php">Home</a></li>
-                <li class="breadcrumb-item breadcrumb-active" aria-current="page">Events/News</li>
+                <li class="breadcrumb-item"><a class="breadcrumb-link text-secondary" href="main_menu.php">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Events/News</li>
             </ol>
         </nav>
     </div>
 
     <div class="container mb-5">
-        <h1 class="<?php echo (isset($_GET['filterType']) || isset($_GET['filterTime']) || isset($_GET['search'])) ? NULL : 'slide-left' ?>">Events/News</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Events/News</h1>
+            <?php if ($userRole === 'Admin'): ?>
+                <a href="add_event.php" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-1"></i> Add Event
+                </a>
+            <?php endif; ?>
+            <a href="add_event_user.php" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Add Advertisement
+            </a>
+        </div>
         
-        <!-- Sign Up Status Message -->
-        <?php if (!empty($signup_message)) : ?>
-            <div class="alert alert-<?php echo $signup_status === 'success' ? 'success' : 'danger'; ?> animate__animated animate__fadeIn">
-                <?= $signup_message ?>
-                <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+        <!-- Flash Messages -->
+        <?php if (isset($flash)): ?>
+            <div class="alert alert-<?= $flash_mode ?> alert-dismissible fade show">
+                <?= $flash ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
         
-        <!-- Filter -->
-        <div class="container mt-3 py-3 px-4 card bg-white fw-medium <?php echo (isset($_GET['filterType']) || isset($_GET['filterTime']) || isset($_GET['search'])) ? NULL : 'slide-left' ?>">
-            <form id="eventsFilterForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="GET">
-                <!-- Type (All, Events, News) -->
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="filterType" id="filterType1" value="All" <?php echo (isset($_GET['filterType']) && $_GET['filterType'] == 'All') ? 'checked' : ((!isset($_GET['filterTime'])) ? 'checked' : NULL ) ?>>
-                    <label class="form-check-label" for="filterType1">All</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="filterType" id="filterType2" value="Event" <?php echo (isset($_GET['filterType']) && $_GET['filterType'] == 'Event') ? 'checked' : NULL ?>>
-                    <label class="form-check-label badge text-bg-success" for="filterType2">Events</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="filterType" id="filterType3" value="News" <?php echo (isset($_GET['filterType']) && $_GET['filterType'] == 'News') ? 'checked' : NULL ?>>
-                    <label class="form-check-label badge text-bg-warning" for="filterType3">News</label>
-                </div>
-
-                <!-- Time (All, Past, Upcoming) -->
-                <div class="form-check-inline ms-4">
-                    <div class="input-group">
-                        <label class="input-group-text" for="filterTime"><i class="bi bi-clock-history" style="-webkit-text-stroke: 0.25px;"></i></label>
-                        <select class="form-select fw-medium" id="filterTime" name="filterTime" aria-label="Time filter">
-                            <option value="All" class="fw-medium" <?php echo (isset($_GET['filterTime']) && $_GET['filterTime'] == 'All') ? 'selected' : NULL ?>>All</option>
-                            <option value="Past" class="fw-medium" <?php echo (isset($_GET['filterTime']) && $_GET['filterTime'] == 'Past') ? 'selected' : NULL ?>>Past</option>
-                            <option value="Upcoming" class="fw-medium" <?php echo (isset($_GET['filterTime']) && $_GET['filterTime'] == 'Upcoming') ? 'selected' : NULL ?>>Upcoming</option>
+        <!-- Filter Section -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Type</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="filterType" id="filterType1" value="All" <?= $filterType === 'All' ? 'checked' : '' ?>>
+                            <label class="btn btn-outline-secondary" for="filterType1">All</label>
+                            
+                            <input type="radio" class="btn-check" name="filterType" id="filterType2" value="Event" <?= $filterType === 'Event' ? 'checked' : '' ?>>
+                            <label class="btn btn-outline-success" for="filterType2">Events</label>
+                            
+                            <input type="radio" class="btn-check" name="filterType" id="filterType3" value="News" <?= $filterType === 'News' ? 'checked' : '' ?>>
+                            <label class="btn btn-outline-warning" for="filterType3">News</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Time</label>
+                        <select class="form-select" name="filterTime">
+                            <option value="All" <?= $filterTime === 'All' ? 'selected' : '' ?>>All</option>
+                            <option value="Upcoming" <?= $filterTime === 'Upcoming' ? 'selected' : '' ?>>Upcoming</option>
+                            <option value="Past" <?= $filterTime === 'Past' ? 'selected' : '' ?>>Past</option>
                         </select>
                     </div>
-                </div>
-
-                <button type="submit" class="btn btn-primary fw-medium mb-1">Display List</button>
-                <a href="add_event_user.php" class="btn btn-success fw-medium mb-1"><i class="bi bi-plus-circle me-1"></i>Add Event</a>
-
-                <!-- Search Box -->
-                <div class="form-check-inline me-0 float-end">
-                    <div class="input-group">
-                        <input type="text" class="form-control py-2" placeholder="Search events" name="search" aria-label="Search" aria-describedby="button-addon2" value="<?php echo (isset($_GET['search'])) ? trim($_GET['search']) : NULL; ?>">
-                        <button class="btn btn-primary px-3 py-2" type="submit" id="button-addon2"><i class="bi bi-search"></i></button>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label">Search</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="search" placeholder="Search events..." value="<?= htmlspecialchars($search) ?>">
+                            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+                            <?php if (!empty($search)): ?>
+                                <a href="view_events.php" class="btn btn-outline-secondary"><i class="bi bi-x"></i></a>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
 
-        <!-- Events/News -->
-        <div class="row row-cols-1 mt-4 px-0 mx-0">
-            <?php 
-                $filterType = "";
-                $filterTime = "";
-                $filterSearch = "";
-
-                // Type filter for Events/News
-                if (isset($_GET['filterType']) && $_GET['filterType'] != 'All')
-                    $filterType = "type = '" . $_GET['filterType'] . "'";
-
-                // Time filter for Events/News
-                if (isset($_GET['filterTime']) && $_GET['filterTime'] != 'All') {
-                    date_default_timezone_set('Asia/Kuching');
-                    $todayDate = date('Y-m-d');
-                    if ($_GET['filterTime'] == 'Upcoming')
-                        $filterTime = "event_date >= '" . $todayDate . "'";
-                    elseif ($_GET['filterTime'] == 'Past')
-                        $filterTime = "event_date < '" . $todayDate . "'";
-                }
-
-                // Search filter for Events/News
-                if (isset($_GET['search']) && $_GET['search'] != "") {
-                    $trimSearch = strtolower(trim($_GET['search']));
-                    $filterSearch = "(
-                        LOWER(title) LIKE '%$trimSearch%' OR 
-                        LOWER(location) LIKE '%$trimSearch%' OR 
-                        LOWER(description) LIKE '%$trimSearch%' OR 
-                        LOWER(event_date) LIKE '%$trimSearch%' OR 
-                        DATE_FORMAT(event_date, '%a, %e %b %Y') LIKE '%$trimSearch%' OR 
-                        LOWER(type) LIKE '%$trimSearch%'
-                        )";
-                }
-
-                // Puts WHERE and AND to the query appropriately
-                $conditions = array_filter([$filterType, $filterTime, $filterSearch]);
-                if (!empty($conditions))
-                    $whereClause = "WHERE " . implode(" AND ", $conditions);
-                else
-                    $whereClause = "";
-
-                // Query the database with the WHERE from previous
-                $allEventsNews = $conn->query("SELECT e.*, 
-                                              (SELECT COUNT(*) FROM event_registration_table 
-                                               WHERE event_id = e.id AND participant_email = '{$_SESSION['logged_account']['email']}') as is_registered
-                                              FROM event_table e $whereClause ORDER BY e.id DESC");
-
-                // Load the events/news if there's at least 1
-                if ($allEventsNews && $allEventsNews->num_rows > 0) {
-                    while ($eventsNews = $allEventsNews->fetch_assoc()) {
-                        // Format date
-                        $date = new DateTime($eventsNews['event_date']);
-                        $formattedDate = strtoupper($date->format('D, j M Y'));
-                        $isUpcoming = $date > new DateTime();
-            ?>
-                <div class="col mb-4 px-0 mx-0 animate__animated animate__fadeIn">
-                    <div class="card">
-                        <div class="row">
-                            <div class="col-auto">
-                                <div class="image-container-events">
-                                    <img src="images/<?php echo $eventsNews['photo']; ?>" class="img-fluid event-image" alt="event_image">
+        <!-- Events/News Listing -->
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <?php if (empty($events)): ?>
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        No events found matching your criteria.
+                    </div>
+                </div>
+            <?php else: ?>
+                <?php foreach ($events as $event): 
+                    // Check if current user is registered for this event
+                    $isRegistered = false;
+                    if ($event['type'] === 'Event' && isset($_SESSION['logged_account']['email'])) {
+                        $checkReg = $conn->prepare("SELECT * FROM event_registration_table WHERE event_id = ? AND participant_email = ?");
+                        $checkReg->bind_param("is", $event['id'], $_SESSION['logged_account']['email']);
+                        $checkReg->execute();
+                        $isRegistered = $checkReg->get_result()->num_rows > 0;
+                    }
+                    
+                    // Parse custom fields if they exist
+                    $customFields = [];
+                    if (!empty($event['custom_fields'])) {
+                        $customFields = json_decode($event['custom_fields'], true);
+                    }
+                ?>
+                    <div class="col">
+                        <div class="card h-100 event-card">
+                            <img src="images/<?= htmlspecialchars($event['photo']) ?>" class="card-img-top" alt="<?= htmlspecialchars($event['title']) ?>">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span class="badge <?= $event['type'] === 'Event' ? 'bg-success' : 'bg-warning' ?>">
+                                        <?= htmlspecialchars($event['type']) ?>
+                                    </span>
+                                    <small class="text-muted"><?= date('M j, Y', strtotime($event['event_date'])) ?></small>
                                 </div>
+                                <h5 class="card-title"><?= htmlspecialchars($event['title']) ?></h5>
+                                <p class="card-text"><i class="bi bi-geo-alt"></i> <?= htmlspecialchars($event['location']) ?></p>
+                                <p class="card-text"><?= htmlspecialchars(substr($event['description'], 0, 100)) ?>...</p>
+                                
+                                <?php if (!empty($customFields)): ?>
+                                    <div class="mb-3">
+                                        <h6>Registration Fields:</h6>
+                                        <div class="custom-fields-list">
+                                            <?php foreach ($customFields as $field): ?>
+                                                <div class="mb-2">
+                                                    <strong><?= htmlspecialchars($field['label']) ?></strong>
+                                                    <span class="badge bg-light text-dark ms-2"><?= htmlspecialchars($field['type']) ?></span>
+                                                    <?php if ($field['required']): ?>
+                                                        <span class="badge bg-danger ms-1">Required</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
                             </div>
-                            <div class="col d-flex flex-column">
-                                <div class="card-body px-2 flex-grow-1 me-4">
-                                    <?php 
-                                        echo "<span class='fw-medium fs-6'>".$formattedDate."</span>". 
-                                             (($eventsNews['type'] == 'Event') ? 
-                                             "<span class='badge text-bg-success mt-1 float-end'>Events</span>" : 
-                                             "<span class='badge text-bg-warning mt-1 float-end'>News</span>")."
-                                            <br/>
-                                            <span class='card-title h3'>".$eventsNews['title']."</span>
-                                            <br/>
-                                            <span class='card-text fw-medium text-secondary'>".$eventsNews['location']."</span>
-                                            <br/><br/>
-                                            <span class='card-text'>".$eventsNews['description']."</span>";
-                                    ?>
+                            <div class="card-footer bg-white">
+                                <div class="d-flex justify-content-between">
+                                    <a href="event_details.php?id=<?= $event['id'] ?>" class="btn btn-sm btn-outline-primary">
+                                        Details
+                                    </a>
+                                    <?php if ($userRole === 'Admin'): ?>
+                                        <div>
+                                            <a href="edit_event.php?id=<?= $event['id'] ?>" class="btn btn-sm btn-outline-secondary">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a href="delete_event.php?id=<?= $event['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this event?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                                <?php if ($eventsNews['type'] == 'Event') { ?>
-                                    <div class="signup-btn">
-                                        <?php if ($eventsNews['is_registered']): ?>
-                                            <button class="btn btn-success" disabled>
-                                                <i class="bi bi-check-circle"></i> Signed Up
+                                
+                                <!-- Registration Section -->
+                                <?php if ($event['type'] === 'Event'): ?>
+                                    <div class="mt-3">
+                                        <?php if ($isRegistered): ?>
+                                            <button class="btn btn-success btn-sm w-100" disabled>
+                                                <i class="bi bi-check-circle"></i> Registered
                                             </button>
-                                            <?php if ($isUpcoming): ?>
-                                                <span class="badge upcoming-badge ms-2">Upcoming</span>
-                                            <?php else: ?>
-                                                <span class="badge past-badge ms-2">Past Event</span>
-                                            <?php endif; ?>
                                         <?php else: ?>
-                                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#signupModal" data-id="<?= $eventsNews['id'] ?>" data-title="<?= htmlspecialchars($eventsNews['title']) ?>">
-                                                <i class="bi bi-person-plus"></i> Sign Up
+                                            <button class="btn btn-primary btn-sm w-100 signup-btn" data-event-id="<?= $event['id'] ?>">
+                                                Sign Up
                                             </button>
-                                            <?php if ($isUpcoming): ?>
-                                                <span class="badge upcoming-badge ms-2">Upcoming</span>
-                                            <?php else: ?>
-                                                <span class="badge past-badge ms-2">Past Event</span>
-                                            <?php endif; ?>
+                                            
+                                            <div class="registration-form" id="form-<?= $event['id'] ?>">
+                                                <form method="POST">
+                                                    <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
+                                                    
+                                                    <?php if (!empty($customFields)): ?>
+                                                        <?php foreach ($customFields as $index => $field): ?>
+                                                            <div class="form-group">
+                                                                <label class="form-label">
+                                                                    <?= htmlspecialchars($field['label']) ?>
+                                                                    <?php if ($field['required']): ?><span class="text-danger">*</span><?php endif; ?>
+                                                                </label>
+                                                                
+                                                                <?php switch($field['type']):
+                                                                    case 'text': ?>
+                                                                        <input type="text" name="custom_response[<?= $index ?>]" class="form-control form-control-sm" <?= $field['required'] ? 'required' : '' ?>>
+                                                                        <?php break; ?>
+                                                                    
+                                                                    case 'textarea': ?>
+                                                                        <textarea name="custom_response[<?= $index ?>]" class="form-control form-control-sm" <?= $field['required'] ? 'required' : '' ?>></textarea>
+                                                                        <?php break; ?>
+                                                                    
+                                                                    case 'checkbox': ?>
+                                                                        <div class="form-check">
+                                                                            <input type="checkbox" name="custom_response[<?= $index ?>]" class="form-check-input" value="1" <?= $field['required'] ? 'required' : '' ?>>
+                                                                            <label class="form-check-label"><?= htmlspecialchars($field['label']) ?></label>
+                                                                        </div>
+                                                                        <?php break; ?>
+                                                                    
+                                                                    case 'radio': ?>
+                                                                        <?php foreach ($field['options'] as $option): ?>
+                                                                            <div class="form-check">
+                                                                                <input type="radio" name="custom_response[<?= $index ?>]" class="form-check-input" value="<?= htmlspecialchars($option) ?>" <?= $field['required'] ? 'required' : '' ?>>
+                                                                                <label class="form-check-label"><?= htmlspecialchars($option) ?></label>
+                                                                            </div>
+                                                                        <?php endforeach; ?>
+                                                                        <?php break; ?>
+                                                                    
+                                                                    case 'select': ?>
+                                                                        <select name="custom_response[<?= $index ?>]" class="form-select form-select-sm" <?= $field['required'] ? 'required' : '' ?>>
+                                                                            <option value="">-- Select --</option>
+                                                                            <?php foreach ($field['options'] as $option): ?>
+                                                                                <option value="<?= htmlspecialchars($option) ?>"><?= htmlspecialchars($option) ?></option>
+                                                                            <?php endforeach; ?>
+                                                                        </select>
+                                                                        <?php break; ?>
+                                                                <?php endswitch; ?>
+                                                            </div>
+                                                        <?php endforeach; ?>
+                                                    <?php endif; ?>
+                                                    
+                                                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                                        <button type="submit" class="btn btn-primary btn-sm">Submit</button>
+                                                        <button type="button" class="btn btn-outline-secondary btn-sm cancel-btn" data-event-id="<?= $event['id'] ?>">Cancel</button>
+                                                    </div>
+                                                </form>
+                                            </div>
                                         <?php endif; ?>
                                     </div>
-                                <?php } ?>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
-                </div>
-            <?php 
-                    }
-                // No result from filter
-                } elseif (isset($_GET['filterType']) || isset($_GET['filterTime']) || isset($_GET['search']) && $_GET['search'] != "") { ?>
-                    <div class="text-center slide-left">
-                        <div class="row align-items-center ps-2 py-2">
-                            <div class="col-12"><h5 class="fw-bold text-secondary">No events/news available from your filter</h5></div>
-                        </div>
-                    </div>
-                <!-- Simply no result -->
-                <?php } else { ?>
-                    <div class="text-center slide-left">
-                        <div class="row align-items-center ps-2 py-2">
-                            <div class="col-12"><h5 class="fw-bold text-secondary">No events/news available</h5></div>
-                        </div>
-                    </div>
-            <?php } 
-                $conn->close();
-            ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
-    </div>
-
-    <!-- Sign Up Modal -->
-    <div class="modal fade" id="signupModal" tabindex="-1" aria-labelledby="signupModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <form class="modal-content" method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']); ?>">
-          <div class="modal-header">
-            <h5 class="modal-title" id="signupModalLabel">Sign Up for Event</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <input type="hidden" name="event_id" id="eventId">
-            <p>You are signing up with your account email: <strong><?php echo htmlspecialchars($_SESSION['logged_account']['email']); ?></strong></p>
-            <p>Click "Confirm Sign Up" to register for this event.</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary">Confirm Sign Up</button>
-          </div>
-        </form>
-      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Initialize Sign Up Modal
-        var signupModal = document.getElementById('signupModal');
-        signupModal.addEventListener('show.bs.modal', function (event) {
-            var button = event.relatedTarget;
-            var eventId = button.getAttribute('data-id');
-            var modalTitle = signupModal.querySelector('.modal-title');
-            var inputEventId = signupModal.querySelector('#eventId');
-
-            modalTitle.textContent = 'Sign Up for: ' + button.getAttribute('data-title');
-            inputEventId.value = eventId;
-        });
-
-        // Auto-close alerts after 5 seconds
-        window.setTimeout(function() {
-            $(".alert").fadeTo(500, 0).slideUp(500, function(){
-                $(this).remove(); 
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show registration form
+            document.querySelectorAll('.signup-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const eventId = this.dataset.eventId;
+                    this.style.display = 'none';
+                    document.getElementById(`form-${eventId}`).style.display = 'block';
+                });
             });
-        }, 5000);
+            
+            // Hide registration form
+            document.querySelectorAll('.cancel-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const eventId = this.dataset.eventId;
+                    document.getElementById(`form-${eventId}`).style.display = 'none';
+                    document.querySelector(`.signup-btn[data-event-id="${eventId}"]`).style.display = 'block';
+                });
+            });
+        });
     </script>
 </body>
 </html>

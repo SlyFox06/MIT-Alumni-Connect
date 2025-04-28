@@ -2,7 +2,7 @@
 // Database configuration
 $servername = "localhost";
 $username = "root";
-$password = "";         // Default for XAMPP
+$password = "root";         // Default for XAMPP
 $dbname = "atharv";     // Ensure this DB exists in phpMyAdmin
 
 // Create connection
