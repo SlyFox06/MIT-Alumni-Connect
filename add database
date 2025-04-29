@@ -40,3 +40,22 @@
 --     FOREIGN KEY (response_id) REFERENCES event_form_responses(id) ON DELETE CASCADE
 -- );
 ----------------------------------------------------------------------------------------
+-- -- Events table
+-- CREATE TABLE alumni_gallery_events (
+--     id INT AUTO_INCREMENT PRIMARY KEY,
+--     event_name VARCHAR(255) NOT NULL,
+--     description TEXT,
+--     event_date DATE NOT NULL,
+--     thumbnail_path VARCHAR(255) NOT NULL,
+--     is_active TINYINT(1) DEFAULT 1,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
+----------------------------------------------------------------------------------------------
+-- -- Photos table
+-- CREATE TABLE alumni_gallery_photos (
+--     id INT AUTO_INCREMENT PRIMARY KEY,
+--     event_id INT NOT NULL,
+--     image_path VARCHAR(255) NOT NULL,
+--     upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (event_id) REFERENCES alumni_gallery_events(id) ON DELETE CASCADE
+-- );

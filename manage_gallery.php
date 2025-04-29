@@ -13,13 +13,7 @@ if (!isset($_SESSION['logged_account'])) {
 $stmt = null;
 $success = null;
 $error = null;
-$gd_enabled = false;
-
-// Check if GD is available
-if (extension_loaded('gd')) {
-    $gd_info = gd_info();
-    $gd_enabled = true;
-}
+$gd_enabled = extension_loaded('gd');
 
 // Handle form submission with enhanced validation
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -37,18 +31,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!strtotime($event_date)) {
                 throw new Exception("Invalid event date");
             }
+
+            // Validate thumbnail upload
+            if (!isset($_FILES['event_thumbnail']) || $_FILES['event_thumbnail']['error'] != UPLOAD_ERR_OK) {
+                throw new Exception("Event thumbnail is required");
+            }
+
+            // Process thumbnail
+            $thumbnail_name = basename($_FILES['event_thumbnail']['name']);
+            $thumbnail_ext = strtolower(pathinfo($thumbnail_name, PATHINFO_EXTENSION));
+            $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
             
-            // First create an event entry
-            $stmt = $conn->prepare("INSERT INTO alumni_gallery_events (event_name, event_date, description) VALUES (?, ?, ?)");
-            $stmt->bind_param("sss", $event_name, $event_date, $description);
-            
-            if (!$stmt->execute()) {
-                throw new Exception("Database error: " . $stmt->error);
+            if (!in_array($thumbnail_ext, $allowed_exts)) {
+                throw new Exception("Only JPG, JPEG, PNG, GIF, and WebP files are allowed for thumbnails");
             }
             
-            $event_id = $stmt->insert_id;
+            $check = getimagesize($_FILES['event_thumbnail']['tmp_name']);
+            if ($check === false) {
+                throw new Exception("Uploaded thumbnail is not an image");
+            }
             
-            // File upload handling with more security
+            if ($_FILES['event_thumbnail']['size'] > 5000000) { // 5MB limit for thumbnail
+                throw new Exception("Thumbnail size exceeds 5MB limit");
+            }
+            
             $target_dir = "uploads/gallery/";
             if (!file_exists($target_dir)) {
                 if (!mkdir($target_dir, 0755, true)) {
@@ -56,87 +62,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 }
             }
             
-            // Validate file uploads
-            if (!isset($_FILES["gallery_images"]) || count($_FILES["gallery_images"]["name"]) == 0) {
-                throw new Exception("No images were uploaded");
+            $new_thumbnail_name = uniqid('thumb_', true) . '.' . $thumbnail_ext;
+            $thumbnail_path = $target_dir . $new_thumbnail_name;
+            
+            if (!move_uploaded_file($_FILES['event_thumbnail']['tmp_name'], $thumbnail_path)) {
+                throw new Exception("Failed to move uploaded thumbnail");
             }
             
-            $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-            $uploaded_files = [];
+            // Create event entry with thumbnail
+            $stmt = $conn->prepare("INSERT INTO alumni_gallery_events (event_name, event_date, description, thumbnail_path) VALUES (?, ?, ?, ?)");
+            $stmt->bind_param("ssss", $event_name, $event_date, $description, $thumbnail_path);
             
-            // Process each uploaded file
-            foreach ($_FILES["gallery_images"]["tmp_name"] as $key => $tmp_name) {
-                if ($_FILES["gallery_images"]["error"][$key] != UPLOAD_ERR_OK) {
-                    throw new Exception("Error uploading file: " . $_FILES["gallery_images"]["name"][$key]);
+            if (!$stmt->execute()) {
+                // Clean up uploaded thumbnail if DB insert fails
+                if (file_exists($thumbnail_path)) {
+                    unlink($thumbnail_path);
                 }
-                
-                $image_name = basename($_FILES["gallery_images"]["name"][$key]);
-                $image_ext = strtolower(pathinfo($image_name, PATHINFO_EXTENSION));
-                
-                if (!in_array($image_ext, $allowed_exts)) {
-                    throw new Exception("Only JPG, JPEG, PNG, GIF, and WebP files are allowed");
-                }
-                
-                // Verify image
-                $check = getimagesize($tmp_name);
-                if ($check === false) {
-                    throw new Exception("Uploaded file is not an image: " . $image_name);
-                }
-                
-                // Check file size (10MB limit)
-                if ($_FILES["gallery_images"]["size"][$key] > 10000000) {
-                    throw new Exception("File size exceeds 10MB limit: " . $image_name);
-                }
-                
-                // Generate unique filename
-                $new_image_name = uniqid('img_', true) . '.' . $image_ext;
-                $target_file = $target_dir . $new_image_name;
-                
-                // Move uploaded file
-                if (!move_uploaded_file($tmp_name, $target_file)) {
-                    throw new Exception("Failed to move uploaded file: " . $image_name);
-                }
-                
-                // Handle thumbnail creation
-                $thumbnail_path = $target_file; // Default to original if GD not available
-                
-                if ($gd_enabled) {
-                    $thumbnail_path = $target_dir . 'thumb_' . $new_image_name;
-                    if (!createThumbnail($target_file, $thumbnail_path, 300)) {
-                        $thumbnail_path = $target_file; // Fallback to original
-                    }
-                }
-                
-                // Store file info for DB insertion
-                $uploaded_files[] = [
-                    'target_file' => $target_file,
-                    'thumbnail_path' => $thumbnail_path
-                ];
+                throw new Exception("Database error: " . $stmt->error);
             }
             
-            // Insert all photos into database
-            $stmt = $conn->prepare("INSERT INTO alumni_gallery_photos (event_id, image_path, thumbnail_path) VALUES (?, ?, ?)");
+            $event_id = $stmt->insert_id;
+            $success = "Gallery event created successfully! You can now add photos.";
             
-            foreach ($uploaded_files as $file) {
-                $stmt->bind_param("iss", $event_id, $file['target_file'], $file['thumbnail_path']);
-                
-                if (!$stmt->execute()) {
-                    // Clean up uploaded files if DB insert fails
-                    foreach ($uploaded_files as $f) {
-                        if (file_exists($f['target_file'])) unlink($f['target_file']);
-                        if (file_exists($f['thumbnail_path']) && $f['thumbnail_path'] != $f['target_file']) {
-                            unlink($f['thumbnail_path']);
-                        }
-                    }
-                    
-                    // Delete the event too
-                    $conn->query("DELETE FROM alumni_gallery_events WHERE id = $event_id");
-                    
-                    throw new Exception("Database error: " . $stmt->error);
-                }
-            }
-            
-            $success = "Gallery event created with " . count($uploaded_files) . " photos!";
+            // Redirect to add photos page
+            header("Location: add_photos.php?event_id=" . $event_id);
+            exit();
             
         } elseif (isset($_POST['update_status'])) {
             // Validate status update
@@ -165,25 +115,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             
             // Get file paths before deletion
+            $stmt = $conn->prepare("SELECT thumbnail_path FROM alumni_gallery_events WHERE id = ?");
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $event = $result->fetch_assoc();
+            
+            if (!$event) {
+                throw new Exception("Event not found");
+            }
+            
+            // Get all photos for this event
             $stmt = $conn->prepare("SELECT image_path, thumbnail_path FROM alumni_gallery_photos WHERE event_id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
             $result = $stmt->get_result();
             
             $files_to_delete = [];
+            
+            // Add event thumbnail to files to delete
+            if (!empty($event['thumbnail_path'])) {
+                $files_to_delete[] = $event['thumbnail_path'];
+            }
+            
+            // Add all photos to files to delete
             while ($row = $result->fetch_assoc()) {
-                $files_to_delete[] = [
-                    'image_path' => $row['image_path'],
-                    'thumbnail_path' => $row['thumbnail_path']
-                ];
+                if (!empty($row['image_path'])) {
+                    $files_to_delete[] = $row['image_path'];
+                }
+                if (!empty($row['thumbnail_path']) && $row['thumbnail_path'] != $row['image_path']) {
+                    $files_to_delete[] = $row['thumbnail_path'];
+                }
             }
             
-            if (count($files_to_delete) === 0) {
-                throw new Exception("No photos found for this event");
-            }
-            
-            // The foreign key constraint with ON DELETE CASCADE will automatically
-            // delete photos when the event is deleted, but we need to delete the files manually
+            // Delete the event (photos will be deleted automatically due to ON DELETE CASCADE)
             $stmt = $conn->prepare("DELETE FROM alumni_gallery_events WHERE id = ?");
             $stmt->bind_param("i", $id);
             
@@ -193,16 +158,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             // Delete the actual files
             foreach ($files_to_delete as $file) {
-                if (file_exists($file['image_path'])) {
-                    unlink($file['image_path']);
-                }
-                
-                if (file_exists($file['thumbnail_path']) && $file['thumbnail_path'] != $file['image_path']) {
-                    unlink($file['thumbnail_path']);
+                if (file_exists($file)) {
+                    unlink($file);
                 }
             }
             
-            $success = "Item and all its photos deleted successfully!";
+            $success = "Event and all its photos deleted successfully!";
         }
     } catch (Exception $e) {
         $error = $e->getMessage();
@@ -213,90 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Enhanced thumbnail creation function
-function createThumbnail($src, $dest, $targetWidth) {
-    if (!function_exists('imagecreatetruecolor')) {
-        return false;
-    }
-    
-    $info = getimagesize($src);
-    if ($info === false) {
-        return false;
-    }
-    
-    // Determine image type
-    $type = $info[2];
-    
-    // Create image from source based on type
-    switch ($type) {
-        case IMAGETYPE_JPEG:
-            $source_image = imagecreatefromjpeg($src);
-            break;
-        case IMAGETYPE_PNG:
-            $source_image = imagecreatefrompng($src);
-            break;
-        case IMAGETYPE_GIF:
-            $source_image = imagecreatefromgif($src);
-            break;
-        case IMAGETYPE_WEBP:
-            $source_image = imagecreatefromwebp($src);
-            break;
-        default:
-            return false;
-    }
-    
-    if (!$source_image) {
-        return false;
-    }
-    
-    $width = $info[0];
-    $height = $info[1];
-    
-    // Calculate proportional height
-    $targetHeight = (int)($height * ($targetWidth / $width));
-    
-    // Create thumbnail
-    $virtual_image = imagecreatetruecolor($targetWidth, $targetHeight);
-    
-    // Preserve transparency for PNG/GIF
-    if ($type == IMAGETYPE_PNG || $type == IMAGETYPE_GIF) {
-        imagecolortransparent($virtual_image, imagecolorallocatealpha($virtual_image, 0, 0, 0, 127));
-        imagealphablending($virtual_image, false);
-        imagesavealpha($virtual_image, true);
-    }
-    
-    // Resize image
-    imagecopyresampled($virtual_image, $source_image, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
-    
-    // Save thumbnail based on original type
-    $result = false;
-    switch ($type) {
-        case IMAGETYPE_JPEG:
-            $result = imagejpeg($virtual_image, $dest, 85);
-            break;
-        case IMAGETYPE_PNG:
-            $result = imagepng($virtual_image, $dest, 8);
-            break;
-        case IMAGETYPE_GIF:
-            $result = imagegif($virtual_image, $dest);
-            break;
-        case IMAGETYPE_WEBP:
-            $result = imagewebp($virtual_image, $dest, 85);
-            break;
-    }
-    
-    // Clean up
-    imagedestroy($source_image);
-    imagedestroy($virtual_image);
-    
-    return $result;
-}
-
 // Get all gallery items with event and photo data
 $gallery_items = [];
 $query = "SELECT e.*, 
-          (SELECT COUNT(*) FROM alumni_gallery_photos WHERE event_id = e.id) as photo_count,
-          (SELECT thumbnail_path FROM alumni_gallery_photos WHERE event_id = e.id LIMIT 1) as thumbnail_path
+          (SELECT COUNT(*) FROM alumni_gallery_photos WHERE event_id = e.id) as photo_count
           FROM alumni_gallery_events e 
           ORDER BY e.event_date DESC";
 $result = $conn->query($query);
@@ -308,9 +189,6 @@ if ($result) {
 }
 
 // Close database connection
-if (isset($stmt) && $stmt) {
-    $stmt->close();
-}
 $conn->close();
 ?>
 
@@ -368,42 +246,13 @@ $conn->close();
             padding: 1.25rem;
         }
         
-        .file-preview-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .file-preview {
-            position: relative;
-            width: 100px;
-            height: 100px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .file-preview img {
-            width: 100%;
-            height: 100%;
+        .thumbnail-preview {
+            max-width: 200px;
+            max-height: 200px;
             object-fit: cover;
-        }
-        
-        .file-preview .remove-btn {
-            position: absolute;
-            top: 2px;
-            right: 2px;
-            width: 20px;
-            height: 20px;
-            background-color: rgba(255,0,0,0.7);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
         }
         
         .btn-action {
@@ -528,10 +377,10 @@ $conn->close();
             <div class="col-lg-4 mb-4">
                 <div class="card h-100">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add New Gallery Event</h5>
+                        <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Create New Event</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" enctype="multipart/form-data" id="galleryForm">
+                        <form method="POST" enctype="multipart/form-data" id="eventForm">
                             <div class="mb-3">
                                 <label for="event_name" class="form-label">Event Name *</label>
                                 <input type="text" class="form-control" id="event_name" name="event_name" required>
@@ -545,13 +394,13 @@ $conn->close();
                                 <textarea class="form-control" id="description" name="description" rows="3" placeholder="Optional description..."></textarea>
                             </div>
                             <div class="mb-3">
-                                <label for="gallery_images" class="form-label">Event Images *</label>
-                                <input type="file" class="form-control" id="gallery_images" name="gallery_images[]" multiple accept="image/*" required>
-                                <small class="text-muted">Max file size: 10MB each. Allowed formats: JPG, PNG, GIF, WebP</small>
-                                <div class="file-preview-container mt-2" id="imagePreviews"></div>
+                                <label for="event_thumbnail" class="form-label">Event Thumbnail *</label>
+                                <input type="file" class="form-control" id="event_thumbnail" name="event_thumbnail" accept="image/*" required>
+                                <small class="text-muted">Max file size: 5MB. Allowed formats: JPG, PNG, GIF, WebP</small>
+                                <img id="thumbnailPreview" class="thumbnail-preview mt-2">
                             </div>
                             <button type="submit" name="add_gallery" class="btn btn-primary w-100">
-                                <i class="bi bi-upload me-2"></i>Create Gallery Event
+                                <i class="bi bi-save me-2"></i>Create Event
                             </button>
                         </form>
                     </div>
@@ -571,14 +420,14 @@ $conn->close();
                             <div class="text-center py-5">
                                 <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
                                 <h5 class="mt-3 text-muted">No gallery events found</h5>
-                                <p class="text-muted">Add your first gallery event using the form on the left</p>
+                                <p class="text-muted">Create your first gallery event using the form on the left</p>
                             </div>
                         <?php else: ?>
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle">
                                     <thead class="table-light">
                                         <tr>
-                                            <th>Cover</th>
+                                            <th>Thumbnail</th>
                                             <th>Event</th>
                                             <th>Date</th>
                                             <th>Photos</th>
@@ -590,16 +439,14 @@ $conn->close();
                                         <?php foreach ($gallery_items as $item): ?>
                                             <tr>
                                                 <td>
-                                                    <?php if ($item['thumbnail_path']): ?>
+                                                    <?php if (!empty($item['thumbnail_path'])): ?>
                                                     <img src="<?php echo htmlspecialchars($item['thumbnail_path']); ?>" 
                                                          class="thumbnail" 
-                                                         alt="<?php echo htmlspecialchars($item['event_name']); ?> thumbnail"
-                                                         data-bs-toggle="tooltip" 
-                                                         data-bs-title="View event photos">
+                                                         alt="<?php echo htmlspecialchars($item['event_name']); ?> thumbnail">
                                                     <?php else: ?>
                                                     <div class="bg-light text-center p-2 rounded" style="width: 100px; height: 100px;">
                                                         <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
-                                                        <small class="d-block text-muted">No image</small>
+                                                        <small class="d-block text-muted">No thumbnail</small>
                                                     </div>
                                                     <?php endif; ?>
                                                 </td>
@@ -625,13 +472,13 @@ $conn->close();
                                                     <div class="d-flex gap-2">
                                                         <a href="view_gallery.php?id=<?php echo $item['id']; ?>" 
                                                            class="btn-action btn btn-info" 
-                                                           title="View Photos"
+                                                           title="View Event"
                                                            data-bs-toggle="tooltip">
                                                             <i class="bi bi-eye"></i>
                                                         </a>
                                                         <a href="add_photos.php?event_id=<?php echo $item['id']; ?>" 
                                                            class="btn-action btn btn-success" 
-                                                           title="Add More Photos"
+                                                           title="Add Photos"
                                                            data-bs-toggle="tooltip">
                                                             <i class="bi bi-plus"></i>
                                                         </a>
@@ -639,7 +486,7 @@ $conn->close();
                                                             <input type="hidden" name="id" value="<?php echo $item['id']; ?>">
                                                             <button type="submit" name="delete_item" 
                                                                     class="btn-action btn btn-danger" 
-                                                                    title="Delete Event & All Photos"
+                                                                    title="Delete Event"
                                                                     data-bs-toggle="tooltip"
                                                                     onclick="return confirm('Are you sure you want to delete this event and all its photos? This action cannot be undone.')">
                                                                 <i class="bi bi-trash"></i>
@@ -668,26 +515,27 @@ $conn->close();
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <h6>Adding Gallery Events</h6>
-                    <p>To add a new gallery event:</p>
+                    <h6>Creating Gallery Events</h6>
+                    <p>To create a new gallery event:</p>
                     <ol>
-                        <li>Fill in the event name and date</li>
+                        <li>Fill in the event name and date (required)</li>
                         <li>Optionally add a description</li>
-                        <li>Select one or more images (max 10MB each)</li>
-                        <li>Click "Create Gallery Event"</li>
+                        <li>Upload a thumbnail image (required, max 5MB)</li>
+                        <li>Click "Create Event"</li>
+                        <li>You'll be redirected to add photos to the event</li>
                     </ol>
                     
                     <h6 class="mt-4">Managing Events</h6>
                     <ul>
                         <li><strong>Toggle Status:</strong> Use the switch to show/hide events from public view</li>
-                        <li><strong>View Photos:</strong> Click the eye icon to view all photos in the event</li>
+                        <li><strong>View Event:</strong> Click the eye icon to view the event details and photos</li>
                         <li><strong>Add Photos:</strong> Click the plus icon to add more photos to an existing event</li>
                         <li><strong>Delete:</strong> Click the trash icon to permanently remove an event and all its photos</li>
                     </ul>
                     
                     <div class="alert alert-info mt-4">
                         <i class="bi bi-info-circle me-2"></i>
-                        You can upload multiple images at once when creating a new event. For best results, upload high-quality images in JPEG or PNG format.
+                        The event thumbnail should be a representative image for the event. You can add all the event photos after creating the event.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -709,45 +557,22 @@ $conn->close();
                 return new bootstrap.Tooltip(tooltipTriggerEl);
             });
             
-            // Image preview for multiple file upload
-            document.getElementById('gallery_images').addEventListener('change', function(event) {
-                const files = event.target.files;
-                const previewContainer = document.getElementById('imagePreviews');
-                previewContainer.innerHTML = '';
+            // Thumbnail preview
+            document.getElementById('event_thumbnail').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                const preview = document.getElementById('thumbnailPreview');
                 
-                if (files.length > 0) {
-                    for (let i = 0; i < files.length; i++) {
-                        const file = files[i];
-                        if (file.type.match('image.*')) {
-                            const reader = new FileReader();
-                            const previewDiv = document.createElement('div');
-                            previewDiv.className = 'file-preview';
-                            
-                            const img = document.createElement('img');
-                            const removeBtn = document.createElement('div');
-                            removeBtn.className = 'remove-btn';
-                            removeBtn.innerHTML = '×';
-                            removeBtn.onclick = function() {
-                                // Remove this file from the file input
-                                const dt = new DataTransfer();
-                                for (let j = 0; j < files.length; j++) {
-                                    if (j !== i) {
-                                        dt.items.add(files[j]);
-                                    }
-                                }
-                                event.target.files = dt.files;
-                                previewDiv.remove();
-                            };
-                            
-                            reader.onload = function(e) {
-                                img.src = e.target.result;
-                                previewDiv.appendChild(img);
-                                previewDiv.appendChild(removeBtn);
-                                previewContainer.appendChild(previewDiv);
-                            }
-                            reader.readAsDataURL(file);
-                        }
+                if (file && file.type.match('image.*')) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                        preview.style.display = 'block';
                     }
+                    
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.style.display = 'none';
                 }
             });
             
