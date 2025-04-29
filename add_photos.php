@@ -2,12 +2,30 @@
 session_start();
 include 'logged_admin.php';
 
+// Database configuration
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', 'root');
+define('DB_NAME', 'atharv');
+define('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB per file
+define('MAX_TOTAL_UPLOAD_SIZE', 50 * 1024 * 1024); // 50MB total
+define('MAX_FILES_PER_UPLOAD', 20);
+
 // Initialize variables
 $success = null;
 $error = null;
 $event_id = null;
 $event = null;
 $gd_enabled = extension_loaded('gd');
+
+// Function to establish database connection
+function connectDB() {
+    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+    if ($conn->connect_error) {
+        die("Connection failed: " . $conn->connect_error);
+    }
+    return $conn;
+}
 
 // Get event ID from URL
 if (isset($_GET['event_id'])) {
@@ -16,30 +34,24 @@ if (isset($_GET['event_id'])) {
     if ($event_id === false || $event_id <= 0) {
         $error = "Invalid event ID";
     } else {
-        // Get database connection
-        $conn = new mysqli("localhost", "username", "password", "alumni_portal");
-        if ($conn->connect_error) {
-            $error = "Database connection failed: " . $conn->connect_error;
+        $conn = connectDB();
+        $stmt = $conn->prepare("SELECT * FROM alumni_gallery_events WHERE id = ?");
+        if ($stmt === false) {
+            $error = "Prepare failed: " . $conn->error;
         } else {
-            // Get event details
-            $stmt = $conn->prepare("SELECT * FROM alumni_gallery_events WHERE id = ?");
-            if (!$stmt) {
-                $error = "Prepare failed: " . $conn->error;
+            $stmt->bind_param("i", $event_id);
+            if (!$stmt->execute()) {
+                $error = "Execute failed: " . $stmt->error;
             } else {
-                $stmt->bind_param("i", $event_id);
-                if (!$stmt->execute()) {
-                    $error = "Execute failed: " . $stmt->error;
-                } else {
-                    $result = $stmt->get_result();
-                    $event = $result->fetch_assoc();
-                    if (!$event) {
-                        $error = "Event not found";
-                    }
+                $result = $stmt->get_result();
+                $event = $result->fetch_assoc();
+                if (!$event) {
+                    $error = "Event not found";
                 }
-                $stmt->close();
             }
-            $conn->close();
+            $stmt->close();
         }
+        $conn->close();
     }
 } else {
     $error = "No event specified";
@@ -47,10 +59,24 @@ if (isset($_GET['event_id'])) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_photos']) && $event_id) {
+    $conn = null;
+    $stmt = null;
+    
     try {
         // Validate file uploads
         if (!isset($_FILES["gallery_images"]) || count($_FILES["gallery_images"]["name"]) == 0) {
             throw new Exception("No images were uploaded");
+        }
+        
+        // Check number of files
+        if (count($_FILES["gallery_images"]["name"]) > MAX_FILES_PER_UPLOAD) {
+            throw new Exception("You can upload a maximum of " . MAX_FILES_PER_UPLOAD . " files at once");
+        }
+        
+        // Check total size
+        $total_size = array_sum($_FILES["gallery_images"]["size"]);
+        if ($total_size > MAX_TOTAL_UPLOAD_SIZE) {
+            throw new Exception("Total upload size exceeds " . (MAX_TOTAL_UPLOAD_SIZE/1024/1024) . "MB limit");
         }
         
         $target_dir = "uploads/gallery/";
@@ -65,15 +91,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_photos']) && $even
         
         // Process each uploaded file
         foreach ($_FILES["gallery_images"]["tmp_name"] as $key => $tmp_name) {
-            if ($_FILES["gallery_images"]["error"][$key] != UPLOAD_ERR_OK) {
-                throw new Exception("Error uploading file: " . $_FILES["gallery_images"]["name"][$key]);
+            $file_error = $_FILES["gallery_images"]["error"][$key];
+            if ($file_error != UPLOAD_ERR_OK) {
+                throw new Exception("Error uploading file: " . $_FILES["gallery_images"]["name"][$key] . " (Error: $file_error)");
             }
             
             $image_name = basename($_FILES["gallery_images"]["name"][$key]);
             $image_ext = strtolower(pathinfo($image_name, PATHINFO_EXTENSION));
             
             if (!in_array($image_ext, $allowed_exts)) {
-                throw new Exception("Only JPG, JPEG, PNG, GIF, and WebP files are allowed");
+                throw new Exception("Only JPG, JPEG, PNG, GIF, and WebP files are allowed. File '$image_name' has invalid extension.");
             }
             
             // Verify image
@@ -82,9 +109,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_photos']) && $even
                 throw new Exception("Uploaded file is not an image: " . $image_name);
             }
             
-            // Check file size (10MB limit)
-            if ($_FILES["gallery_images"]["size"][$key] > 10000000) {
-                throw new Exception("File size exceeds 10MB limit: " . $image_name);
+            // Check file size
+            if ($_FILES["gallery_images"]["size"][$key] > MAX_FILE_SIZE) {
+                throw new Exception("File size exceeds " . (MAX_FILE_SIZE/1024/1024) . "MB limit: " . $image_name);
             }
             
             // Generate unique filename
@@ -113,11 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_photos']) && $even
         }
         
         // Insert all photos into database
-        $conn = new mysqli("localhost", "username", "password", "alumni_portal");
-        if ($conn->connect_error) {
-            throw new Exception("Database connection failed: " . $conn->connect_error);
-        }
-        
+        $conn = connectDB();
         $stmt = $conn->prepare("INSERT INTO alumni_gallery_photos (event_id, image_path, thumbnail_path) VALUES (?, ?, ?)");
         if (!$stmt) {
             throw new Exception("Prepare failed: " . $conn->error);
@@ -140,13 +163,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_photos']) && $even
         }
         
         $success = "Successfully added " . count($uploaded_files) . " photos to the event!";
-        $stmt->close();
-        $conn->close();
         
     } catch (Exception $e) {
         $error = $e->getMessage();
-        if (isset($stmt)) $stmt->close();
-        if (isset($conn)) $conn->close();
+    } finally {
+        if ($stmt) $stmt->close();
+        if ($conn) $conn->close();
     }
 }
 
@@ -217,6 +239,33 @@ function createThumbnail($src, $dest, $targetWidth) {
             display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 12px;
         }
         .event-thumbnail { max-width: 200px; max-height: 200px; object-fit: cover; border-radius: 4px; }
+        .progress-container { background: rgba(0,0,0,0.05); padding: 15px; border-radius: 4px; }
+        .file-size {
+            position: absolute; bottom: 2px; left: 2px;
+            background: rgba(0,0,0,0.7); color: white;
+            padding: 2px 4px; border-radius: 3px;
+            font-size: 0.7rem;
+        }
+        .invalid-file {
+            border: 2px solid #dc3545;
+        }
+        .upload-area {
+            border: 2px dashed #dee2e6;
+            border-radius: 5px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 1rem;
+        }
+        .upload-area:hover {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+        .upload-area.active {
+            border-color: #0d6efd;
+            background-color: rgba(13, 110, 253, 0.1);
+        }
     </style>
 </head>
 <body class="admin-bg">
@@ -272,20 +321,18 @@ function createThumbnail($src, $dest, $targetWidth) {
                         <div class="card-body">
                             <div class="d-flex align-items-start">
                                 <?php
-                                $conn = new mysqli("localhost", "username", "password", "alumni_portal");
+                                $conn = connectDB();
                                 $thumbnail_path = null;
-                                if (!$conn->connect_error) {
-                                    $stmt = $conn->prepare("SELECT thumbnail_path FROM alumni_gallery_photos WHERE event_id = ? LIMIT 1");
-                                    if ($stmt) {
-                                        $stmt->bind_param("i", $event_id);
-                                        $stmt->execute();
-                                        $result = $stmt->get_result();
-                                        $photo = $result->fetch_assoc();
-                                        $thumbnail_path = $photo['thumbnail_path'] ?? null;
-                                        $stmt->close();
-                                    }
-                                    $conn->close();
+                                $stmt = $conn->prepare("SELECT thumbnail_path FROM alumni_gallery_photos WHERE event_id = ? LIMIT 1");
+                                if ($stmt) {
+                                    $stmt->bind_param("i", $event_id);
+                                    $stmt->execute();
+                                    $result = $stmt->get_result();
+                                    $photo = $result->fetch_assoc();
+                                    $thumbnail_path = $photo['thumbnail_path'] ?? null;
+                                    $stmt->close();
                                 }
+                                $conn->close();
                                 ?>
                                 
                                 <?php if ($thumbnail_path): ?>
@@ -318,14 +365,28 @@ function createThumbnail($src, $dest, $targetWidth) {
                             <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Add New Photos</h5>
                         </div>
                         <div class="card-body">
-                            <form method="POST" enctype="multipart/form-data">
+                            <form method="POST" enctype="multipart/form-data" id="uploadForm">
                                 <div class="mb-3">
                                     <label class="form-label">Select Images *</label>
-                                    <input type="file" class="form-control" name="gallery_images[]" multiple accept="image/*" required>
-                                    <small class="text-muted">Max 10MB per file. Formats: JPG, PNG, GIF, WebP</small>
+                                    <div class="upload-area" id="dropArea">
+                                        <i class="bi bi-cloud-arrow-up" style="font-size: 2rem;"></i>
+                                        <p class="mt-2">Drag & drop images here or click to browse</p>
+                                        <small class="text-muted">Max <?= (MAX_FILE_SIZE/1024/1024) ?>MB per file, <?= (MAX_TOTAL_UPLOAD_SIZE/1024/1024) ?>MB total</small>
+                                    </div>
+                                    <input type="file" class="form-control d-none" name="gallery_images[]" id="fileInput" multiple accept="image/*" required>
                                     <div class="file-preview-container mt-2" id="imagePreviews"></div>
+                                    <div class="d-flex justify-content-between mt-2">
+                                        <small class="text-muted" id="fileCount">0 files selected</small>
+                                        <small class="text-muted" id="totalSize">0MB</small>
+                                    </div>
                                 </div>
-                                <button type="submit" name="add_photos" class="btn btn-primary w-100">
+                                <div id="progressContainer" class="d-none">
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <div class="text-center mt-2"><small class="status-text">Uploading...</small></div>
+                                </div>
+                                <button type="submit" name="add_photos" class="btn btn-primary w-100" id="uploadBtn">
                                     <i class="bi bi-upload me-2"></i>Upload Photos
                                 </button>
                             </form>
@@ -339,28 +400,225 @@ function createThumbnail($src, $dest, $targetWidth) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            document.querySelector('input[name="gallery_images[]"]').addEventListener('change', function(e) {
-                const container = document.getElementById('imagePreviews');
-                container.innerHTML = '';
+            const dropArea = document.getElementById('dropArea');
+            const fileInput = document.getElementById('fileInput');
+            const imagePreviews = document.getElementById('imagePreviews');
+            const fileCount = document.getElementById('fileCount');
+            const totalSize = document.getElementById('totalSize');
+            const uploadForm = document.getElementById('uploadForm');
+            const progressContainer = document.getElementById('progressContainer');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            // Drag and drop functionality
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                dropArea.classList.add('active');
+            }
+            
+            function unhighlight() {
+                dropArea.classList.remove('active');
+            }
+            
+            dropArea.addEventListener('drop', handleDrop, false);
+            dropArea.addEventListener('click', () => fileInput.click());
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                fileInput.files = files;
+                handleFiles(files);
+            }
+            
+            fileInput.addEventListener('change', function() {
+                handleFiles(this.files);
+            });
+            
+            function handleFiles(files) {
+                imagePreviews.innerHTML = '';
                 
-                Array.from(e.target.files).forEach((file, i) => {
-                    if (!file.type.match('image.*')) return;
+                if (files.length === 0) {
+                    fileCount.textContent = '0 files selected';
+                    totalSize.textContent = '0MB';
+                    return;
+                }
+                
+                if (files.length > <?= MAX_FILES_PER_UPLOAD ?>) {
+                    alert(`You can upload a maximum of <?= MAX_FILES_PER_UPLOAD ?> files at once. Only the first <?= MAX_FILES_PER_UPLOAD ?> will be selected.`);
+                    // Create a new FileList with only the first MAX_FILES_PER_UPLOAD files
+                    const dataTransfer = new DataTransfer();
+                    for (let i = 0; i < Math.min(files.length, <?= MAX_FILES_PER_UPLOAD ?>); i++) {
+                        dataTransfer.items.add(files[i]);
+                    }
+                    fileInput.files = dataTransfer.files;
+                    files = dataTransfer.files;
+                }
+                
+                let totalSizeBytes = 0;
+                let validFiles = 0;
+                
+                Array.from(files).slice(0, 20).forEach((file, i) => {
+                    totalSizeBytes += file.size;
                     
-                    const reader = new FileReader();
                     const preview = document.createElement('div');
                     preview.className = 'file-preview';
+                    preview.title = file.name;
                     
+                    const sizeInfo = document.createElement('div');
+                    sizeInfo.className = 'file-size';
+                    sizeInfo.textContent = formatFileSize(file.size);
+                    
+                    const removeBtn = document.createElement('div');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function() {
+                        // Remove file from input
+                        const dataTransfer = new DataTransfer();
+                        Array.from(fileInput.files).forEach(f => {
+                            if (f !== file) dataTransfer.items.add(f);
+                        });
+                        fileInput.files = dataTransfer.files;
+                        preview.remove();
+                        updateFileInfo();
+                    };
+                    
+                    if (!file.type.match('image.*')) {
+                        preview.classList.add('invalid-file');
+                        preview.innerHTML = `
+                            <div class="w-100 h-100 d-flex flex-column align-items-center justify-content-center p-2 bg-danger text-white">
+                                <i class="bi bi-exclamation-triangle-fill mb-1"></i>
+                                <small class="text-center">Invalid image</small>
+                            </div>
+                        `;
+                        preview.appendChild(sizeInfo);
+                        imagePreviews.appendChild(preview);
+                        return;
+                    }
+                    
+                    validFiles++;
+                    
+                    const reader = new FileReader();
                     reader.onload = function(e) {
                         preview.innerHTML = `
                             <img src="${e.target.result}">
-                            <div class="remove-btn" onclick="this.parentNode.remove()">×</div>
                         `;
-                        container.appendChild(preview);
+                        preview.appendChild(removeBtn);
+                        preview.appendChild(sizeInfo);
+                        imagePreviews.appendChild(preview);
                     };
                     reader.readAsDataURL(file);
                 });
+                
+                updateFileInfo();
+                
+                function updateFileInfo() {
+                    const files = fileInput.files;
+                    let totalBytes = 0;
+                    Array.from(files).forEach(file => totalBytes += file.size);
+                    
+                    fileCount.textContent = `${files.length} file${files.length !== 1 ? 's' : ''} selected`;
+                    totalSize.textContent = formatFileSize(totalBytes);
+                    
+                    if (totalBytes > <?= MAX_TOTAL_UPLOAD_SIZE ?>) {
+                        totalSize.classList.add('text-danger');
+                    } else {
+                        totalSize.classList.remove('text-danger');
+                    }
+                }
+                
+                function formatFileSize(bytes) {
+                    if (bytes < 1024) return bytes + 'B';
+                    else if (bytes < 1048576) return (bytes/1024).toFixed(1) + 'KB';
+                    else return (bytes/1048576).toFixed(1) + 'MB';
+                }
+            }
+            
+            // Form submission with validation
+            uploadForm.addEventListener('submit', function(e) {
+                const files = fileInput.files;
+                
+                if (files.length === 0) {
+                    e.preventDefault();
+                    alert('Please select at least one image to upload');
+                    return false;
+                }
+                
+                // Check total size
+                let totalSize = 0;
+                Array.from(files).forEach(file => {
+                    totalSize += file.size;
+                });
+                
+                if (totalSize > <?= MAX_TOTAL_UPLOAD_SIZE ?>) {
+                    e.preventDefault();
+                    alert(`Total upload size exceeds <?= (MAX_TOTAL_UPLOAD_SIZE/1024/1024) ?>MB limit`);
+                    return false;
+                }
+                
+                // Check for invalid files
+                let hasInvalidFiles = false;
+                Array.from(files).forEach(file => {
+                    if (!file.type.match('image.*')) hasInvalidFiles = true;
+                });
+                
+                if (hasInvalidFiles) {
+                    e.preventDefault();
+                    alert('One or more selected files are not valid images');
+                    return false;
+                }
+                
+                // Show progress bar
+                progressContainer.classList.remove('d-none');
+                uploadBtn.disabled = true;
+                
+                // For AJAX upload (optional - uncomment if you want AJAX upload)
+                /*
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressContainer.querySelector('.progress-bar').style.width = percent + '%';
+                        progressContainer.querySelector('.status-text').textContent = `Uploading... ${percent}%`;
+                    }
+                });
+                
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        progressContainer.querySelector('.status-text').textContent = 'Upload complete!';
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        progressContainer.querySelector('.status-text').textContent = 'Upload failed';
+                        uploadBtn.disabled = false;
+                        alert('Upload failed: ' + xhr.responseText);
+                    }
+                };
+                
+                xhr.open('POST', window.location.href, true);
+                xhr.send(formData);
+                */
             });
         });
     </script>
 </body>
-</html>
+</html> 

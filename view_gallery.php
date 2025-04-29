@@ -12,7 +12,16 @@ $stmt = $conn->prepare("
     WHERE e.is_active = 1
     ORDER BY e.event_date DESC, p.upload_date DESC
 ");
-$stmt->execute();
+
+// Check if prepare failed
+if ($stmt === false) {
+    die("Database error: " . $conn->error);
+}
+
+if (!$stmt->execute()) {
+    die("Database error: " . $stmt->error);
+}
+
 $result = $stmt->get_result();
 
 // Organize data into events with their photos
@@ -28,7 +37,8 @@ while ($row = $result->fetch_assoc()) {
         ];
     }
     
-    if ($row['photo_id']) {
+    // Only add photo if it exists (LEFT JOIN may return NULL photo fields)
+    if ($row['photo_id'] && file_exists($row['image_path'])) {
         $events[$event_id]['photos'][] = [
             'id' => $row['photo_id'],
             'image' => $row['image_path'],
@@ -113,11 +123,32 @@ $conn->close();
             width: 5%;
             background-color: rgba(0,0,0,0.3);
         }
+        .carousel-indicators {
+            position: relative;
+            margin: 0;
+            padding: 1rem 0;
+            justify-content: center;
+        }
+        .carousel-indicators [data-bs-target] {
+            width: 80px;
+            height: 60px;
+            margin: 0 5px;
+            opacity: 0.7;
+            border: none;
+            overflow: hidden;
+        }
+        .carousel-indicators [data-bs-target] img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .carousel-indicators .active {
+            opacity: 1;
+            border: 2px solid #0d6efd;
+        }
     </style>
 </head>
 <body>
-    
-
     <div class="container gallery-container">
         <h1 class="mb-4">Photo Gallery</h1>
         
@@ -159,7 +190,8 @@ $conn->close();
                                                  data-photo-index="<?php echo $index; ?>">
                                                 <img src="<?php echo htmlspecialchars($photo['thumbnail']); ?>" 
                                                      alt="Event photo" 
-                                                     class="photo-thumbnail">
+                                                     class="photo-thumbnail"
+                                                     onerror="this.src='assets/default-image.jpg'">
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
@@ -185,7 +217,7 @@ $conn->close();
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="photoCarousel" class="carousel slide">
+                    <div id="photoCarousel" class="carousel slide" data-bs-interval="false">
                         <div class="carousel-inner" id="carousel-inner">
                             <!-- Carousel items will be added dynamically -->
                         </div>
@@ -197,6 +229,9 @@ $conn->close();
                             <span class="carousel-control-next-icon" aria-hidden="true"></span>
                             <span class="visually-hidden">Next</span>
                         </button>
+                    </div>
+                    <div class="carousel-indicators" id="carousel-thumbnails">
+                        <!-- Thumbnail indicators will be added dynamically -->
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -212,7 +247,7 @@ $conn->close();
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Prepare photo data for JavaScript
-            const eventsData = <?php echo json_encode($events); ?>;
+            const eventsData = <?php echo json_encode(array_values($events)); ?>;
             
             // Handle photo modal display
             const photoModal = document.getElementById('photoModal');
@@ -222,7 +257,8 @@ $conn->close();
                     const eventId = parseInt(trigger.getAttribute('data-event-id'));
                     const photoIndex = parseInt(trigger.getAttribute('data-photo-index'));
                     
-                    const event = eventsData[eventId];
+                    // Find the event in our data
+                    const event = eventsData.find(e => e.id == eventId);
                     if (!event) return;
                     
                     // Update modal title
@@ -232,7 +268,12 @@ $conn->close();
                     const carouselInner = document.getElementById('carousel-inner');
                     carouselInner.innerHTML = '';
                     
+                    // Build thumbnail indicators
+                    const carouselThumbnails = document.getElementById('carousel-thumbnails');
+                    carouselThumbnails.innerHTML = '';
+                    
                     event.photos.forEach((photo, index) => {
+                        // Create carousel item
                         const carouselItem = document.createElement('div');
                         carouselItem.className = `carousel-item ${index === photoIndex ? 'active' : ''}`;
                         
@@ -240,20 +281,35 @@ $conn->close();
                         img.src = photo.image;
                         img.className = 'modal-image img-fluid';
                         img.alt = `Photo from ${event.name}`;
+                        img.onerror = function() {
+                            this.src = 'assets/default-image.jpg';
+                        };
                         
                         carouselItem.appendChild(img);
                         carouselInner.appendChild(carouselItem);
+                        
+                        // Create thumbnail indicator
+                        const thumbnailBtn = document.createElement('button');
+                        thumbnailBtn.type = 'button';
+                        thumbnailBtn.setAttribute('data-bs-target', '#photoCarousel');
+                        thumbnailBtn.setAttribute('data-bs-slide-to', index);
+                        thumbnailBtn.className = index === photoIndex ? 'active' : '';
+                        thumbnailBtn.setAttribute('aria-current', index === photoIndex ? 'true' : 'false');
+                        thumbnailBtn.setAttribute('aria-label', `Slide ${index + 1}`);
+                        
+                        const thumbnailImg = document.createElement('img');
+                        thumbnailImg.src = photo.thumbnail;
+                        thumbnailImg.alt = `Thumbnail ${index + 1}`;
+                        thumbnailImg.onerror = function() {
+                            this.src = 'assets/default-thumbnail.jpg';
+                        };
+                        
+                        thumbnailBtn.appendChild(thumbnailImg);
+                        carouselThumbnails.appendChild(thumbnailBtn);
                     });
                     
                     // Update photo details
-                    const photoDetails = document.getElementById('photoDetails');
-                    if (event.photos[photoIndex]) {
-                        const uploadDate = new Date(event.photos[photoIndex].upload_date);
-                        photoDetails.innerHTML = `
-                            Uploaded: ${uploadDate.toLocaleDateString()} 
-                            | Photo ${photoIndex + 1} of ${event.photos.length}
-                        `;
-                    }
+                    updatePhotoDetails(event, photoIndex);
                 });
                 
                 // Initialize carousel when modal is shown
@@ -266,26 +322,37 @@ $conn->close();
                     document.getElementById('photoCarousel').addEventListener('slid.bs.carousel', function(event) {
                         const activeIndex = event.to;
                         const eventId = parseInt(
-                            document.querySelector('[data-bs-target="#photoModal"]').getAttribute('data-event-id')
+                            document.querySelector('[data-bs-target="#photoModal"][data-event-id]').getAttribute('data-event-id')
                         );
-                        const event = eventsData[eventId];
+                        const event = eventsData.find(e => e.id == eventId);
                         
                         if (event && event.photos[activeIndex]) {
-                            const uploadDate = new Date(event.photos[activeIndex].upload_date);
-                            document.getElementById('photoDetails').innerHTML = `
-                                Uploaded: ${uploadDate.toLocaleDateString()} 
-                                | Photo ${activeIndex + 1} of ${event.photos.length}
-                            `;
+                            updatePhotoDetails(event, activeIndex);
                         }
                     });
                 });
+                
+                // Function to update photo details
+                function updatePhotoDetails(event, index) {
+                    const uploadDate = new Date(event.photos[index].upload_date);
+                    document.getElementById('photoDetails').innerHTML = `
+                        Uploaded: ${uploadDate.toLocaleDateString()} 
+                        | Photo ${index + 1} of ${event.photos.length}
+                    `;
+                    
+                    // Update active thumbnail
+                    const thumbnails = document.querySelectorAll('#carousel-thumbnails button');
+                    thumbnails.forEach((thumb, i) => {
+                        if (i === index) {
+                            thumb.classList.add('active');
+                            thumb.setAttribute('aria-current', 'true');
+                        } else {
+                            thumb.classList.remove('active');
+                            thumb.removeAttribute('aria-current');
+                        }
+                    });
+                }
             }
-            
-            // Initialize tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
         });
     </script>
 </body>
