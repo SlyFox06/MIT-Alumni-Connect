@@ -1,26 +1,42 @@
 <?php
 session_start();
-include 'db_controller.php';
+require 'db_controller.php'; // Changed to require for critical files
 
-// Get all active events with their photo count
+// Error handling for DB connection
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+// Get all active events with their photo count and thumbnail
 $events = [];
 $stmt = $conn->prepare("
     SELECT e.*, 
-    (SELECT COUNT(*) FROM alumni_gallery_photos WHERE event_id = e.id) as photo_count
+    (SELECT COUNT(*) FROM alumni_gallery_photos WHERE event_id = e.id) as photo_count,
+    (SELECT thumbnail_path FROM alumni_gallery_photos WHERE event_id = e.id LIMIT 1) as thumbnail_path
     FROM alumni_gallery_events e
     WHERE e.is_active = 1
     ORDER BY e.event_date DESC
 ");
 
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
 if ($stmt->execute()) {
     $result = $stmt->get_result();
     while ($row = $result->fetch_assoc()) {
+        // Verify thumbnail exists
+        if (!empty($row['thumbnail_path']) && !file_exists($row['thumbnail_path'])) {
+            $row['thumbnail_path'] = null;
+        }
         $events[] = $row;
     }
+} else {
+    die("Execute failed: " . $stmt->error);
 }
 
 $stmt->close();
-$conn->close();
+// Don't close connection yet as we might need it for the modal
 ?>
 
 <!DOCTYPE html>
@@ -41,6 +57,7 @@ $conn->close();
             border: none;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             cursor: pointer;
+            height: 100%;
         }
         .event-card:hover {
             transform: translateY(-5px);
@@ -77,6 +94,13 @@ $conn->close();
         .view-gallery-btn {
             transition: all 0.3s ease;
         }
+        .default-thumbnail {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 <body>
@@ -94,26 +118,27 @@ $conn->close();
         <?php else: ?>
             <div class="row">
                 <?php foreach ($events as $event): ?>
-                    <div class="col-md-4">
-                        <div class="card event-card">
+                    <div class="col-md-4 mb-4">
+                        <div class="card event-card h-100">
                             <?php if (!empty($event['thumbnail_path'])): ?>
                                 <img src="<?php echo htmlspecialchars($event['thumbnail_path']); ?>" 
                                      class="event-thumbnail" 
-                                     alt="<?php echo htmlspecialchars($event['event_name']); ?>">
+                                     alt="<?php echo htmlspecialchars($event['event_name']); ?>"
+                                     onerror="this.src='assets/default-image.jpg'">
                             <?php else: ?>
-                                <div class="bg-light text-center py-5">
+                                <div class="default-thumbnail">
                                     <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
                                 </div>
                             <?php endif; ?>
-                            <div class="card-body">
+                            <div class="card-body d-flex flex-column">
                                 <h5 class="card-title"><?php echo htmlspecialchars($event['event_name']); ?></h5>
                                 <p class="card-text text-muted">
                                     <small><?php echo date('F j, Y', strtotime($event['event_date'])); ?></small>
                                 </p>
-                                <p class="card-text"><?php echo htmlspecialchars($event['description']); ?></p>
-                                <button class="btn btn-primary view-gallery-btn" 
-                                        data-event-id="<?php echo $event['id']; ?>">
-                                    View Gallery (<?php echo $event['photo_count']; ?> photos)
+                                <p class="card-text flex-grow-1"><?php echo htmlspecialchars($event['description']); ?></p>
+                                <button class="btn btn-primary view-gallery-btn mt-auto" 
+                                        data-event-id="<?php echo htmlspecialchars($event['id']); ?>">
+                                    View Gallery (<?php echo (int)$event['photo_count']; ?> photos)
                                 </button>
                             </div>
                         </div>
@@ -146,22 +171,19 @@ $conn->close();
                         </button>
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Required JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Bootstrap tooltips
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-
         // Gallery button functionality
         const viewButtons = document.querySelectorAll('.view-gallery-btn');
+        const galleryModal = new bootstrap.Modal(document.getElementById('galleryModal'));
         
         viewButtons.forEach(button => {
             button.addEventListener('click', function() {
@@ -176,10 +198,10 @@ $conn->close();
         });
         
         function loadEventGallery(eventId) {
-            // Show loading state
             const modalTitle = document.getElementById('galleryModalLabel');
             const carouselInner = document.getElementById('carousel-inner');
             
+            // Show loading state
             modalTitle.textContent = 'Loading Gallery...';
             carouselInner.innerHTML = `
                 <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
@@ -188,11 +210,10 @@ $conn->close();
             `;
             
             // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('galleryModal'));
-            modal.show();
+            galleryModal.show();
             
             // Fetch event photos
-            fetch(`get_event_photos.php?event_id=${eventId}`)
+            fetch(`get_event_photos.php?event_id=${encodeURIComponent(eventId)}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
@@ -200,18 +221,18 @@ $conn->close();
                     return response.json();
                 })
                 .then(data => {
-                    if (!data.success) {
-                        throw new Error(data.error || 'Failed to load gallery');
+                    if (!data || !data.success) {
+                        throw new Error(data?.error || 'Failed to load gallery');
                     }
                     
                     // Update modal title
-                    modalTitle.textContent = data.event.event_name;
+                    modalTitle.textContent = data.event?.event_name || 'Event Gallery';
                     
                     // Clear loading state
                     carouselInner.innerHTML = '';
                     
                     // Check if there are photos
-                    if (data.photos.length === 0) {
+                    if (!data.photos || data.photos.length === 0) {
                         carouselInner.innerHTML = `
                             <div class="carousel-item active">
                                 <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
@@ -227,7 +248,7 @@ $conn->close();
                         const item = document.createElement('div');
                         item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
                         item.innerHTML = `
-                            <img src="${photo.image_path}" 
+                            <img src="${escapeHtml(photo.image_path)}" 
                                  class="d-block w-100" 
                                  style="max-height: 70vh; object-fit: contain;"
                                  onerror="this.onerror=null;this.src='assets/default-image.jpg'"
@@ -244,13 +265,27 @@ $conn->close();
                     carouselInner.innerHTML = `
                         <div class="carousel-item active">
                             <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
-                                <p class="text-danger">Error: ${error.message}</p>
+                                <p class="text-danger">Error: ${escapeHtml(error.message)}</p>
                             </div>
                         </div>
                     `;
                 });
         }
+        
+        // Simple HTML escape function
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
     });
     </script>
 </body>
 </html>
+<?php
+// Close connection at the very end
+$conn->close();
+?>
