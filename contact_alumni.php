@@ -79,14 +79,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             // Content
             $mail->isHTML(false);
-            $mail->Subject = 'Message from ' . $name . ' via Atharv Portal';
+            $mail->Subject = 'Message from ' . $name . ' via MIT Portal';
             
             $emailBody = "Dear " . $alumnusToContact['first_name'] . ",\n\n";
-            $emailBody .= "You have received a message through the Atharv Alumni Portal:\n\n";
+            $emailBody .= "You have received a message through the MIT Alumni Portal:\n\n";
             $emailBody .= "From: $name ($email)\n";
             if (!empty($phone)) $emailBody .= "Phone: $phone\n";
             $emailBody .= "\nMessage:\n" . wordwrap($message, 70) . "\n\n";
-            $emailBody .= "--\nThis message was sent via Atharv Alumni Portal\n";
+            $emailBody .= "--\nThis message was sent via MIT Alumni Portal\n";
             $emailBody .= "To reply directly, please use the email address above.";
             
             $mail->Body = $emailBody;
@@ -108,8 +108,8 @@ function determineSenderEmail($senderDomain, $receiverDomain) {
     $rules = [
         'gmail.com-company.com' => 'gmail-relay@atharv.edu',
         'yahoo.com-company.com' => 'yahoo-relay@atharv.edu',
-        '*-gmail.com' => 'gmail-contact@atharv.edu',
-        '*-yahoo.com' => 'yahoo-contact@atharv.edu',
+        '*-gmail.com' => 'gmail-contact@mit.edu',
+        '*-yahoo.com' => 'yahoo-contact@mit.edu',
         'default' => 'noreply@atharv.edu'
     ];
     
