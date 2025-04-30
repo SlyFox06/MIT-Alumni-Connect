@@ -63,7 +63,7 @@ try {
             color: var(--dark);
             line-height: 1.6;
             overflow-x: hidden;
-            padding-top: 70px;
+            padding-top: 50px;
         }
 
         /* Navbar Styles */
