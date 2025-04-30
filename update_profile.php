@@ -122,27 +122,104 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $resumeFile = ''; // Empty string to clear the database field
             }
 
-            // Update database
-            $conn->select_db("atharv");
-            $stmt = $conn->prepare("UPDATE user_table SET 
-                first_name = ?, last_name = ?, dob = ?, gender = ?, 
-                contact_number = ?, hometown = ?, current_location = ?, 
-                profile_image = COALESCE(?, profile_image), 
-                job_position = ?, qualification = ?, 
-                year = ?, university = ?, company = ?, 
-                resume = CASE WHEN ? IS NOT NULL THEN ? 
-                            WHEN ? = '' THEN '' 
-                            ELSE resume END
-                WHERE email = ?");
-            
-            $stmt->bind_param("ssssssssssiissssss", 
-                $firstName, $lastName, $dob, $gender,
-                $contactNumber, $hometown, $currentLocation,
-                $profileImage, 
-                $jobPosition, $qualification,
-                $year, $university, $company,
-                $resumeFile, $resumeFile, $resumeFile,
-                $userEmail);
+            // Build the UPDATE query dynamically based on provided fields
+            $updateFields = [];
+            $params = [];
+            $types = '';
+
+            // Required fields
+            $updateFields[] = "first_name = ?";
+            $params[] = $firstName;
+            $types .= 's';
+
+            $updateFields[] = "last_name = ?";
+            $params[] = $lastName;
+            $types .= 's';
+
+            $updateFields[] = "hometown = ?";
+            $params[] = $hometown;
+            $types .= 's';
+
+            // Optional fields
+            if (!empty($dob)) {
+                $updateFields[] = "dob = ?";
+                $params[] = $dob;
+                $types .= 's';
+            }
+
+            if (!empty($gender)) {
+                $updateFields[] = "gender = ?";
+                $params[] = $gender;
+                $types .= 's';
+            }
+
+            if (!empty($contactNumber)) {
+                $updateFields[] = "contact_number = ?";
+                $params[] = $contactNumber;
+                $types .= 's';
+            }
+
+            if (!empty($currentLocation)) {
+                $updateFields[] = "current_location = ?";
+                $params[] = $currentLocation;
+                $types .= 's';
+            }
+
+            if (!empty($profileImage)) {
+                $updateFields[] = "profile_image = ?";
+                $params[] = $profileImage;
+                $types .= 's';
+            }
+
+            if (!empty($jobPosition)) {
+                $updateFields[] = "job_position = ?";
+                $params[] = $jobPosition;
+                $types .= 's';
+            }
+
+            if (!empty($qualification)) {
+                $updateFields[] = "qualification = ?";
+                $params[] = $qualification;
+                $types .= 's';
+            }
+
+            if (!empty($year)) {
+                $updateFields[] = "year = ?";
+                $params[] = $year;
+                $types .= 'i';
+            }
+
+            if (!empty($university)) {
+                $updateFields[] = "university = ?";
+                $params[] = $university;
+                $types .= 's';
+            }
+
+            if (!empty($company)) {
+                $updateFields[] = "company = ?";
+                $params[] = $company;
+                $types .= 's';
+            }
+
+            // Handle resume separately
+            if ($resumeFile !== null) {
+                $updateFields[] = "resume = ?";
+                $params[] = $resumeFile;
+                $types .= 's';
+            } elseif ($removeResume) {
+                $updateFields[] = "resume = ''";
+            }
+
+            // Add email to params for WHERE clause
+            $params[] = $userEmail;
+            $types .= 's';
+
+            // Build the final query
+            $query = "UPDATE user_table SET " . implode(', ', $updateFields) . " WHERE email = ?";
+
+            // Prepare and execute
+            $stmt = $conn->prepare($query);
+            $stmt->bind_param($types, ...$params);
 
             if ($stmt->execute()) {
                 $_SESSION['flash'] = "Profile updated successfully!";
