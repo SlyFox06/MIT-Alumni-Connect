@@ -46,75 +46,75 @@ try {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            --primary: #4361ee;
-            --primary-light: #4f6cff;
-            --secondary: #3f37c9;
-            --accent: #4cc9f0;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --space-unit: 1.5rem;
-        }
+        <style>
+            :root {
+                --primary: #4361ee;
+                --primary-light: #4f6cff;
+                --secondary: #3f37c9;
+                --accent: #4cc9f0;
+                --light: #f8f9fa;
+                --dark: #212529;
+                --space-unit: 1.5rem;
+            }
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f5f7ff;
-            color: var(--dark);
-            line-height: 1.6;
-            overflow-x: hidden;
-            padding-top: 50px;
-        }
+            body {
+                font-family: 'Poppins', sans-serif;
+                background-color: #f5f7ff;
+                color: var(--dark);
+                line-height: 1.6;
+                overflow-x: hidden;
+                padding-top: 50px;
+            }
 
-        /* Navbar Styles */
-        .navbar {
-            background: white;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-            padding: 0.8rem 1rem;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-        }
+            /* Navbar Styles */
+            .navbar {
+                background: white;
+                box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+                padding: 0.8rem 1rem;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                z-index: 1030;
+            }
 
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1.2rem;
-        }
+            .navbar-brand {
+                font-weight: 700;
+                color: var(--primary);
+                font-size: 1.2rem;
+            }
 
-        .navbar-brand:hover {
-            color: #3D1165;
-            transition: 0.5s ease;
-        }
+            .navbar-brand:hover {
+                color: #3D1165;
+                transition: 0.5s ease;
+            }
 
-        /* .navbar-brand span {
-            color: var(--secondary);
-        } */
+            /* .navbar-brand span {
+                color: var(--secondary);
+            } */
 
-        .nav-link {
-            font-weight: 500;
-            color: var(--dark);
-            padding: 0.5rem 1rem;
-            margin: 0 0.2rem;
-            border-radius: 5px;
-            transition: all 0.3s ease-in-out;
-        }
+            .nav-link {
+                font-weight: 500;
+                color: var(--dark);
+                padding: 0.5rem 1rem;
+                margin: 0 0.2rem;
+                border-radius: 5px;
+                transition: all 0.3s ease-in-out;
+            }
 
-        .nav-link:hover {
-            color: var(--secondary);
-            /* slight color shift */
-            background: rgba(67, 97, 238, 0.15);
-            transform: translateY(-2px);
-        }
-        
+            .nav-link:hover {
+                color: var(--secondary);
+                /* slight color shift */
+                background: rgba(67, 97, 238, 0.15);
+                transform: translateY(-2px);
+            }
+            
 
-        /* .nav-link:hover,
-        .nav-link.active {
-            color: var(--primary);
-            background: rgba(67, 97, 238, 0.1);
-        } */
+            /* .nav-link:hover,
+            .nav-link.active {
+                color: var(--primary);
+                background: rgba(67, 97, 238, 0.1);
+            } */
 
         /* Banner Styles */
         .banner {
