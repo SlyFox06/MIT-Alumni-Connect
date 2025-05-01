@@ -7,11 +7,10 @@
 
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         .navbar {
@@ -31,8 +30,8 @@
 
         .navbar-brand {
             font-weight: 700;
-            color: var(--primary);
-            font-size: 1.2rem;
+            color: #3D1165;
+            font-size: 1.5rem;
         }
 
         .navbar-brand:hover {
@@ -40,13 +39,23 @@
             transition: 0.5s ease;
         }
 
-        /* .navbar-brand span {
-            color: var(--secondary);
-        } */
+        /* New navbar styles */
+        .nav-container {
+            display: flex;
+            align-items: center;
+            
+            margin-left: auto;
+        }
 
-        .nav-link {
-            font-weight: 500;
-            color: var(--dark);
+        .nav-item {
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
             text-decoration: none;
@@ -101,11 +110,10 @@
         session_start();
 
         include 'logged_user.php';
-        $email = $_SESSION['logged_account']['email'];
     ?>
 
     <!-- Updated Top nav bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar sticky-top navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand mx-0 mb-0 h1" href="main_menu.php">MIT Alumni Portal</a>
 
@@ -155,7 +163,6 @@
             </div>
         </div>
     </nav>
-
 
     <!-- Breadcrumb -->
     <div class="container my-3">
