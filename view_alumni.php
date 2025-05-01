@@ -7,31 +7,51 @@
 
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <!-- Bootstrap Icons -->
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        .navbar {
-            background: white;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-            padding: 0.8rem 1rem;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
+        :root {
+            --primary: #4361ee;
+            --primary-light: #4f6cff;
+            --secondary: #3f37c9;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --space-unit: 1.5rem;
         }
 
-        .me-5 {
-            margin-right: -31rem !important;
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f7ff;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 50px;
         }
 
+        /* Navbar Styles */
+        navbar {
+    background: white;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+    padding: 0.8rem 1rem !important; /* Replace padding-top with consistent padding all around */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    display: flex;
+    align-items: center; /* Ensures vertical centering */
+    min-height: 70px; /* Set a consistent height */
+        }
+        
         .navbar-brand {
             font-weight: 700;
-            color: #3D1165;
-            font-size: 1.5rem;
+            color: var(--primary);
+            font-size: 1.2rem;
         }
 
         .navbar-brand:hover {
@@ -39,43 +59,32 @@
             transition: 0.5s ease;
         }
 
-        /* New navbar styles */
-        .nav-container {
-            display: flex;
-            align-items: center;
-            
-            margin-left: auto;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-        }
-
-        .nav-button {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            /* background-color: #f0f0f0; */
-        }
-
-        /* .active-nav-button {
-            background-color: #E6E6FA;
-            color: #3D1165;
+        /* .navbar-brand span {
+            color: var(--secondary);
         } */
 
-        .nav-button:hover {
-            transform: translateY(-5px);
-            background-color: #E6E6FA;
-            color: #3D1165;
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
         }
 
+        .nav-link:hover {
+            color: var(--secondary);
+            /* slight color shift */
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
+        
+
+        /* .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary);
+            background: rgba(67, 97, 238, 0.1);
+        } */
         .nav-icon {
             font-size: 1.2rem;
         }
@@ -110,56 +119,39 @@
         session_start();
 
         include 'logged_user.php';
+        $email = $_SESSION['logged_account']['email'];
     ?>
 
     <!-- Updated Top nav bar -->
-    <nav class="navbar sticky-top navbar-expand-lg">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand mx-0 mb-0 h1" href="main_menu.php">MIT Alumni Portal</a>
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <a class="navbar-brand" href="#">
+                <span>MIT</span> ALUMNI PORTAL
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
-
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <div class="nav-container">
-                    <div class="nav-item">
-                        <a class="nav-button active-nav-button" href="main_menu.php">
-                            <i class="bi bi-people nav-icon"></i>
-                            <span>Alumni</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="view_events.php">
-                            <i class="bi bi-calendar-event nav-icon"></i>
-                            <span>Events</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="view_advertisements.php">
-                            <i class="bi bi-briefcase nav-icon"></i>
-                            <span>Opportunities</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="view_gallery.php">
-                            <i class="bi bi-images nav-icon"></i>
-                            <span>Gallery</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="profile_detail.php">
-                            <i class="bi bi-person nav-icon"></i>
-                            <span>Profile</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="logout.php">
-                            <i class="bi bi-box-arrow-right nav-icon"></i>
-                            <span>Logout</span>
-                        </a>
-                    </div>
-                </div>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="main_menu.php"><i class="bi bi-people-fill"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
+                    </li>
+                    <li class="nav-item">
+                    <a class="nav-link" href="/Alumni-Portal-main/view_profile.php?email=<?php echo htmlspecialchars($_SESSION['logged_account']['email']); ?>"><i class="bi bi-person me-1"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
