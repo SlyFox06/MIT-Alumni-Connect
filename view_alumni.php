@@ -7,11 +7,11 @@
 
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         :root {
             --primary: #4361ee;
@@ -35,7 +35,6 @@
         /* Navbar Styles */
         .navbar {
         background: white;
-        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
         padding: 0.8rem 1rem !important;
         position: fixed;
         top: 0;
@@ -85,22 +84,23 @@
             color: var(--dark);
             padding: 0.5rem 1rem;
             margin: 0 0.2rem;
-            border-radius: 5px;
+            border-radius: 1px;
             transition: all 0.3s ease-in-out;
+            border-radius: 5px 5px 5px 5px !important;
         }
 
         .nav-link:hover {
-            color: var(--secondary);
-            /* slight color shift */
-            background: rgba(67, 97, 238, 0.15);
-            transform: translateY(-2px);
-        }
+                color: var(--secondary);
+                /* slight color shift */
+                background: #3f37c9;
+                transform: translateY(-2px);
+            }
         
 
         .nav-button:hover {
-            transform: translateY(-5px);
-            background-color: #E6E6FA;
-            color: #3D1165;
+            transform: translateY(-2px);
+            background-color:rgba(67, 97, 238, 0.15);
+            color:rgba(67, 97, 238, 0.15);
         }
 
         .nav-icon {
@@ -151,7 +151,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="main_menu.php"><i class="bi bi-people-fill"></i> Home</a>
+                        <a class="nav-link" href="main_menu.php"><i class="bi bi-people"></i> Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>

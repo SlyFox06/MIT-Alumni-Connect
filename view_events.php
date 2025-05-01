@@ -139,6 +139,12 @@ if ($result->num_rows > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <!-- Add AOS (Animate On Scroll) -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --primary: #4361ee;
@@ -147,52 +153,92 @@ if ($result->num_rows > 0) {
             --accent: #4cc9f0;
             --light: #f8f9fa;
             --dark: #212529;
+            --space-unit: 1.5rem;
         }
-        
+
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f5f7ff;
+            background-color: #F0F2F5;
             color: var(--dark);
-            padding-top: 70px;
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 80px;
         }
-        
-        /* Navbar with animation */
+
+        /* Navbar Styles */
         .navbar {
-            background-color: #343a40 !important;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
+        background: white;
+        box-shadow:0 0 5px rgba(0,0,0,.3);
+        padding: 0.8rem 1rem !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1030;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+    }
+
+    .navbar-nav {
+    margin-left: auto; /* Pushes items to the right */
+    display: flex;
+    align-items: center; /* Vertical centering for nav items */
+}
         
-        .navbar.scrolled {
-            padding: 0.5rem 1rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+.navbar-brand {
+        font-weight: 600;
+        color: #4361ee;
+        font-size: 1.3rem;
+        letter-spacing: 0.5px;
+        margin-right: 3rem; /* Add more space after the brand */
+    }
+
+    .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
         }
-        
-        .nav-bi {
-            -webkit-text-stroke: 0.5px;
-        }
-        
-        .nav-main-active {
+
+        /* .navbar-brand span {
+            color: var(--secondary);
+        } */
+
+        .nav-item {
+    margin-left: -3px;
+    margin-right: -3px;
+}
+
+.navbar .container {
+    display: flex;
+    align-items: center;
+}
+
+        .nav-link {
             font-weight: 500;
-            color: white !important;
-            position: relative;
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            margin: 0px 10px;
+            border-radius: 1px;
+            transition: all 0.3s ease-in-out;
+            border-radius: 5px 5px 5px 5px !important;
         }
+
+        .nav-link:hover {
+                color: var(--secondary);
+                /* slight color shift */
+                background: rgba(67, 97, 238, 0.15);
+                transform: translateY(-2px);
+            }
         
-        .nav-main-active::after {
-            content: '';
-            position: absolute;
-            width: 70%;
-            height: 2px;
-            background: white;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            animation: navUnderline 0.5s ease forwards;
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background-color:rgba(67, 97, 238, 0.15);
+            color:rgba(67, 97, 238, 0.15);
         }
-        
-        @keyframes navUnderline {
-            from { width: 0; }
-            to { width: 70%; }
+
+        .nav-icon {
+            font-size: 1.2rem;
         }
         
         /* Event cards with enhanced animations */
@@ -351,26 +397,28 @@ if ($result->num_rows > 0) {
 </head>
 <body>
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand animate__animated animate__fadeInLeft" href="main_menu.php">MIT Alumni Portal</a>
+            <a class="navbar-brand" href="#">
+                <span>MIT</span> ALUMNI PORTAL
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="main_menu.php"><i class="bi bi-house-door nav-bi"></i> Home</a>
+                        <a class="nav-link" href="main_menu.php"><i class="bi bi-people nav-bi"></i>Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people nav-bi"></i> Alumni</a>
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-calendar-event me-1"></i>Alumni</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-main-active" href="view_events.php"><i class="bi bi-calendar-event-fill nav-bi"></i> Events</a>
+                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-megaphone nav-bi"></i> Opportunities</a>
-                    </li>
+                        <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
+    </li>
                 </ul>
                 
                 <!-- Right-aligned items -->
@@ -416,7 +464,6 @@ if ($result->num_rows > 0) {
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end animate__animated animate__fadeIn" aria-labelledby="userDropdown">
                             <li><a class="dropdown-item" href="view_profile.php?email=<?= htmlspecialchars($_SESSION['logged_account']['email']) ?>"><i class="bi bi-person me-2"></i>Profile</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                         </ul>

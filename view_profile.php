@@ -182,6 +182,64 @@ if (isset($_SESSION['flash'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
+
+body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 69px;
+        } 
+        
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
+        }
+
+        /* .navbar-brand span {
+            color: var(--secondary);
+        } */
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .nav-link:hover {
+            color: var(--secondary);
+            /* slight color shift */
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
+        
+
+        /* .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary);
+            background: rgba(67, 97, 238, 0.1);
+        } */
+
         .profile-pic {
             width: 150px;
             height: 150px;
@@ -232,54 +290,7 @@ if (isset($_SESSION['flash'])) {
         }
 
         /* Navbar Styles */
-        .navbar {
-            background: white;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-            padding: 0.8rem 1rem;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-        }
-
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1.2rem;
-        }
-
-        .navbar-brand:hover {
-            color: #3D1165;
-            transition: 0.5s ease;
-        }
-
-        /* .navbar-brand span {
-            color: var(--secondary);
-        } */
-
-        .nav-link {
-            font-weight: 500;
-            color: var(--dark);
-            padding: 0.5rem 1rem;
-            margin: 0 0.2rem;
-            border-radius: 5px;
-            transition: all 0.3s ease-in-out;
-        }
-
-        .nav-link:hover {
-            color: var(--secondary);
-            /* slight color shift */
-            background: rgba(67, 97, 238, 0.15);
-            transform: translateY(-2px);
-        }
-        
-
-        /* .nav-link:hover,
-        .nav-link.active {
-            color: var(--primary);
-            background: rgba(67, 97, 238, 0.1);
-        } */
+       
     </style>
 </head>
 <body>
@@ -295,6 +306,9 @@ if (isset($_SESSION['flash'])) {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
+                        <a class="nav-link" href="view_profile.php"><i class="bi bi-person me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="view_alumni.php"><i class="bi bi-people nav-bi"></i> Alumni</a>
                     </li>
                     <li class="nav-item">
@@ -306,9 +320,7 @@ if (isset($_SESSION['flash'])) {
                     <li class="nav-item">
                         <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="view_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
-                    </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
                     </li>

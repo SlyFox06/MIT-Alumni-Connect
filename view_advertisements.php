@@ -35,130 +35,117 @@ if (isset($_SESSION['flash_mode'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assignment 2 | Advertisements</title>
 
-    <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Animate.css -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <!-- AOS (Animate On Scroll) -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
-        :root {
+         :root {
             --primary: #4361ee;
             --primary-light: #4f6cff;
             --secondary: #3f37c9;
             --accent: #4cc9f0;
             --light: #f8f9fa;
             --dark: #212529;
+            --space-unit: 1.5rem;
         }
-        
+
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #f5f7ff;
+            background-color: #F0F2F5;
             color: var(--dark);
-            padding-top: 70px; /* For fixed navbar */
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 80px;
         }
-        
+
         /* Navbar Styles */
         .navbar {
-            background: white;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-            padding: 0.8rem 1rem;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            transition: all 0.3s ease;
-        }
+        background: white;
+        box-shadow:0 0 5px rgba(0,0,0,.3);
+        padding: 0.8rem 1rem !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1030;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+    }
+
+    .navbar-nav {
+    margin-left: auto; /* Pushes items to the right */
+    display: flex;
+    align-items: center; /* Vertical centering for nav items */
+}
         
-        .navbar.scrolled {
-            padding: 0.5rem 1rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+.navbar-brand {
+        font-weight: 600;
+        color: #4361ee;
+        font-size: 1.3rem;
+        letter-spacing: 0.5px;
+        margin-right: 3rem; /* Add more space after the brand */
+    }
+
+    .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
         }
-        
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1.5rem;
-            transition: all 0.3s ease;
-        }
-        
-        .navbar-brand:hover {
-            transform: scale(1.05);
-        }
-        
-        .navbar-brand span {
+
+        /* .navbar-brand span {
             color: var(--secondary);
-        }
-        
+        } */
+
+        .nav-item {
+    margin-left: -3px;
+    margin-right: -3px;
+}
+
+.navbar .container {
+    display: flex;
+    align-items: center;
+}
+
         .nav-link {
             font-weight: 500;
             color: var(--dark);
             padding: 0.5rem 1rem;
-            margin: 0 0.2rem;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            position: relative;
+            margin: 0px 10px;
+            border-radius: 1px;
+            transition: all 0.3s ease-in-out;
+            border-radius: 5px 5px 5px 5px !important;
+        }
+
+        .nav-link:hover {
+                color: var(--secondary);
+                /* slight color shift */
+                background: rgba(67, 97, 238, 0.15);
+                transform: translateY(-2px);
+            }
+        
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background-color:rgba(67, 97, 238, 0.15);
+            color:rgba(67, 97, 238, 0.15);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
         }
         
-        .nav-link:hover, .nav-link.active {
-            color: var(--primary);
-            background: rgba(67, 97, 238, 0.1);
-        }
-        
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            background: var(--primary);
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            transition: width 0.3s ease;
-        }
-        
-        .nav-link:hover::after {
-            width: 70%;
-        }
-        
-        .nav-main-active {
-            color: var(--primary) !important;
-            background: rgba(67, 97, 238, 0.1) !important;
-        }
-        
-        .navbar-toggler {
-            border: none;
-            padding: 0.5rem;
-            transition: transform 0.3s ease;
-        }
-        
-        .navbar-toggler:active {
-            transform: scale(0.95);
-        }
-        
-        .navbar-toggler:focus {
-            box-shadow: none;
-        }
-        
-        /* Profile picture in navbar */
-        .nav-profile-img {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--primary);
-            transition: all 0.3s ease;
-        }
-        
-        .nav-profile-img:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 10px rgba(67, 97, 238, 0.3);
-        }
         
         /* Dropdown menu */
         .dropdown-menu {
@@ -375,10 +362,11 @@ if (isset($_SESSION['flash_mode'])) {
 </head>
 <body>
     <!-- Updated Top nav bar with profile dropdown -->
+    <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="main_menu.php">
-                <span>MIT</span> Alumni
+            <a class="navbar-brand" href="#">
+                <span>MIT</span> ALUMNI PORTAL
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -386,29 +374,24 @@ if (isset($_SESSION['flash_mode'])) {
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="main_menu.php"><i class="bi bi-house-door me-1"></i> Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people me-1"></i> Alumni</a>
+                        <a class="nav-link" href="main_menu.php"><i class="bi bi-people"></i> Home</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-main-active" href="view_advertisements.php"><i class="bi bi-megaphone-fill me-1"></i> Opportunities</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="view_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
-                    </li>                  
-                    
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
-
     <!-- Breadcrumb -->
     <div class="container my-3">
         <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
