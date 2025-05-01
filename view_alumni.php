@@ -34,25 +34,43 @@
         }
 
         /* Navbar Styles */
-        navbar {
-    background: white;
-    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
-    padding: 0.8rem 1rem !important; /* Replace padding-top with consistent padding all around */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1030;
+            .navbar {
+        background: white;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+        padding: 0.8rem 1rem !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1030;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+    }
+
+.navbar-nav {
+    margin-left: auto; /* Pushes items to the right */
     display: flex;
-    align-items: center; /* Ensures vertical centering */
-    min-height: 70px; /* Set a consistent height */
-        }
+    align-items: center; /* Vertical centering for nav items */
+}
+
+.nav-item {
+    margin-left: -3px;
+    margin-right: -3px;
+}
+
+        .navbar .container {
+    display: flex;
+    align-items: center;
+}
         
-        .navbar-brand {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1.2rem;
-        }
+    .navbar-brand {
+        font-weight: 600;
+        color: #4361ee;
+        font-size: 1.3rem;
+        letter-spacing: 0.5px;
+        margin-right: 3rem; /* Add more space after the brand */
+    }
 
         .navbar-brand:hover {
             color: #3D1165;
@@ -63,14 +81,25 @@
             color: var(--secondary);
         } */
 
-        .nav-link {
-            font-weight: 500;
-            color: var(--dark);
-            padding: 0.5rem 1rem;
-            margin: 0 0.2rem;
-            border-radius: 5px;
-            transition: all 0.3s ease-in-out;
-        }
+        .navbar-nav {
+            margin-left: 0 !important; 
+         }
+
+    .nav-link {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: #404040;
+    padding: 0.5rem 1rem;
+    margin: 0 0.4rem;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.nav-link i {
+    margin-right: 6px;
+    font-size: 1.1rem;
+}
 
         .nav-link:hover {
             color: var(--secondary);
@@ -78,6 +107,10 @@
             background: rgba(67, 97, 238, 0.15);
             transform: translateY(-2px);
         }
+
+        .navbar-collapse {
+    justify-content: flex-end !important;
+}
         
 
         /* .nav-link:hover,
@@ -123,38 +156,39 @@
     ?>
 
     <!-- Updated Top nav bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <span>MIT</span> ALUMNI PORTAL
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="main_menu.php"><i class="bi bi-people-fill"></i> Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
-                    </li>
-                    <li class="nav-item">
-                    <a class="nav-link" href="/Alumni-Portal-main/view_profile.php?email=<?php echo htmlspecialchars($_SESSION['logged_account']['email']); ?>"><i class="bi bi-person me-1"></i> Profile</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
-                    </li>
-                </ul>
-            </div>
+   <!-- Updated navbar HTML to match your example image -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container">
+        <a class="navbar-brand" href="#">
+            MIT ALUMNI PORTAL
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+        <ul class="navbar-nav">
+        <li class="nav-item">
+            <a class="nav-link" href="main_menu.php"><i class="bi bi-people-fill"></i> Alumni</a>
+    </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event"></i> Events</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase"></i> Opportunities</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_gallery.php"><i class="bi bi-images"></i> Gallery</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/Alumni-Portal-main/view_profile.php?email=<?php echo htmlspecialchars($_SESSION['logged_account']['email']); ?>"><i class="bi bi-person"></i> Profile</a>
+                </li>
+                <li class="nav-item">   
+                    <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                </li>
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
 
     <!-- Breadcrumb -->
     <div class="container my-3">
