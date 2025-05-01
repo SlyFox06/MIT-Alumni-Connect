@@ -230,39 +230,93 @@ if (isset($_SESSION['flash'])) {
             left: 0;
             cursor: pointer;
         }
+
+        /* Navbar Styles */
+        .navbar {
+            background: white;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
+        }
+
+        /* .navbar-brand span {
+            color: var(--secondary);
+        } */
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .nav-link:hover {
+            color: var(--secondary);
+            /* slight color shift */
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
+        
+
+        /* .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary);
+            background: rgba(67, 97, 238, 0.1);
+        } */
     </style>
 </head>
 <body>
     <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="main_menu.php">MIT Alumni Portal</a>
+        <a class="navbar-brand" href="main_menu.php">
+                <span>MIT</span> ALUMNI PORTAL
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
-            </button>
+            </button>   
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="main_menu.php"><i class="bi bi-house-door"></i> Home</a>
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people nav-bi"></i> Alumni</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event"></i> Events</a>
+                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-megaphone"></i> Opportunities</a>
-                    </li>
-                </ul>
-                <ul class="navbar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="view_profile.php"><i class="bi bi-person-circle"></i> Profile</a>
+                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                        <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
+
 
     <!-- Profile Header -->
     <div class="profile-header text-center">
@@ -318,7 +372,7 @@ if (isset($_SESSION['flash'])) {
                                             <div class="progress-bar" role="progressbar" style="width: <?= $eventsPercent ?>%" 
                                                  aria-valuenow="<?= $eventsPercent ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
-                                        <small class="text-muted"><?= round($eventsPercent) ?>% of monthly goal</small>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -333,7 +387,7 @@ if (isset($_SESSION['flash'])) {
                                             <div class="progress-bar" role="progressbar" style="width: <?= $newsPercent ?>%" 
                                                  aria-valuenow="<?= $newsPercent ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
-                                        <small class="text-muted"><?= round($newsPercent) ?>% of monthly goal</small>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -348,7 +402,7 @@ if (isset($_SESSION['flash'])) {
                                             <div class="progress-bar" role="progressbar" style="width: <?= $adsPercent ?>%" 
                                                  aria-valuenow="<?= $adsPercent ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
-                                        <small class="text-muted"><?= round($adsPercent) ?>% of monthly goal</small>
+                                        
                                     </div>
                                 </div>
                             </div>
@@ -363,7 +417,7 @@ if (isset($_SESSION['flash'])) {
                                             <div class="progress-bar" role="progressbar" style="width: <?= ($eventsPercent + $newsPercent + $adsPercent) / 3 ?>%" 
                                                  aria-valuenow="<?= ($eventsPercent + $newsPercent + $adsPercent) / 3 ?>" aria-valuemin="0" aria-valuemax="100"></div>
                                         </div>
-                                        <small class="text-muted">Overall engagement</small>
+                                        
                                     </div>
                                 </div>
                             </div>
