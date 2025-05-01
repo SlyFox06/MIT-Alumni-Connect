@@ -13,7 +13,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <style>
-        .navbar {
+       /* Navbar Styles */
+       .navbar {
             background: white;
             box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
             padding: 0.8rem 1rem;
@@ -24,14 +25,10 @@
             z-index: 1030;
         }
 
-        .me-5 {
-            margin-right: -31rem !important;
-        }
-
         .navbar-brand {
             font-weight: 700;
-            color: #3D1165;
-            font-size: 1.5rem;
+            color: var(--primary);
+            font-size: 1.2rem;
         }
 
         .navbar-brand:hover {
@@ -39,46 +36,33 @@
             transition: 0.5s ease;
         }
 
-        /* New navbar styles */
-        .nav-container {
-            display: flex;
-            align-items: center;
-            
-            margin-left: auto;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-        }
-
-        .nav-button {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            /* background-color: #f0f0f0; */
-        }
-
-        /* .active-nav-button {
-            background-color: #E6E6FA;
-            color: #3D1165;
+        /* .navbar-brand span {
+            color: var(--secondary);
         } */
 
-        .nav-button:hover {
-            transform: translateY(-5px);
-            background-color: #E6E6FA;
-            color: #3D1165;
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            margin: 0 0.2rem;
+            border-radius: 5px;
+            transition: all 0.3s ease-in-out;
         }
 
-        .nav-icon {
-            font-size: 1.2rem;
+        .nav-link:hover {
+            color: var(--secondary);
+            /* slight color shift */
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
         }
+        
+
+        /* .nav-link:hover,
+        .nav-link.active {
+            color: var(--primary);
+            background: rgba(67, 97, 238, 0.1);
+        } */
+
 
         body {
             padding-top: 70px;
@@ -113,56 +97,39 @@
     ?>
 
     <!-- Updated Top nav bar -->
-    <nav class="navbar sticky-top navbar-expand-lg">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand mx-0 mb-0 h1" href="main_menu.php">MIT Alumni Portal</a>
-
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <a class="navbar-brand" href="main_menu.php">
+                <span>MIT</span> ALUMNI PORTAL
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <div class="nav-container">
-                    <div class="nav-item">
-                        <a class="nav-button active-nav-button" href="main_menu.php">
-                            <i class="bi bi-people nav-icon"></i>
-                            <span>Alumni</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="view_events.php">
-                            <i class="bi bi-calendar-event nav-icon"></i>
-                            <span>Events</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="view_advertisements.php">
-                            <i class="bi bi-briefcase nav-icon"></i>
-                            <span>Opportunities</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="view_gallery.php">
-                            <i class="bi bi-images nav-icon"></i>
-                            <span>Gallery</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="profile_detail.php">
-                            <i class="bi bi-person nav-icon"></i>
-                            <span>Profile</span>
-                        </a>
-                    </div>
-                    <div class="nav-item">
-                        <a class="nav-button" href="logout.php">
-                            <i class="bi bi-box-arrow-right nav-icon"></i>
-                            <span>Logout</span>
-                        </a>
-                    </div>
-                </div>
+            </button>   
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people"></i></i> Alumni</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
+
 
     <!-- Breadcrumb -->
     <div class="container my-3">
