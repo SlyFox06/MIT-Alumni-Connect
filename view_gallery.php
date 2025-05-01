@@ -2,6 +2,8 @@
 session_start();
 require 'db_controller.php'; // Changed to require for critical files
 
+$email = $_SESSION['logged_account']['email'];
+
 // Error handling for DB connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
@@ -47,7 +49,108 @@ $stmt->close();
     <title>Photo Gallery | MIT Alumni Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
     <style>
+
+:root {
+            --primary: #4361ee;
+            --primary-light: #4f6cff;
+            --secondary: #3f37c9;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --space-unit: 1.5rem;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #F0F2F5;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 80px;
+        }
+
+        /* Navbar Styles */
+        .navbar {
+        background: white;
+        box-shadow:0 0 5px rgba(0,0,0,.3);
+        padding: 0.8rem 1rem !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1030;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+    }
+
+    .navbar-nav {
+    margin-left: auto; /* Pushes items to the right */
+    display: flex;
+    align-items: center; /* Vertical centering for nav items */
+}
+        
+.navbar-brand {
+        font-weight: 600;
+        color: #4361ee;
+        font-size: 1.3rem;
+        letter-spacing: 0.5px;
+        margin-right: 3rem; /* Add more space after the brand */
+    }
+
+    .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
+        }
+
+        /* .navbar-brand span {
+            color: var(--secondary);
+        } */
+
+        .nav-item {
+    margin-left: -3px;
+    margin-right: -3px;
+}
+
+.navbar .container {
+    display: flex;
+    align-items: center;
+}
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            margin: 0px 10px;
+            border-radius: 1px;
+            transition: all 0.3s ease-in-out;
+            border-radius: 5px 5px 5px 5px !important;
+        }
+
+        .nav-link:hover {
+                color: var(--secondary);
+                /* slight color shift */
+                background: rgba(67, 97, 238, 0.15);
+                transform: translateY(-2px);
+            }
+        
+
+        .nav-button:hover {
+            transform: translateY(-2px);
+            background-color:rgba(67, 97, 238, 0.15);
+            color:rgba(67, 97, 238, 0.15);
+        }
+
+        .nav-icon {
+            font-size: 1.2rem;
+        }
+
         .gallery-container {
             padding: 2rem 0;
         }
@@ -105,6 +208,40 @@ $stmt->close();
 </head>
 <body>
     <!-- Navigation would go here -->
+       <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <span>MIT</span> ALUMNI PORTAL
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="main_menu.php"><i class="bi bi-images me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people nav-bi"></i> Alumni</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
     <div class="container gallery-container">
         <h1 class="mb-4">Photo Gallery</h1>
