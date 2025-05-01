@@ -317,16 +317,7 @@ if ($result->num_rows > 0) {
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Floating animation for featured events */
-        .featured-event {
-            animation: floating 3s ease-in-out infinite;
-        }
-        
-        @keyframes floating {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-            100% { transform: translateY(0px); }
-        }
+      
         
         /* Custom scrollbar */
         ::-webkit-scrollbar {

@@ -322,16 +322,7 @@ if (isset($_SESSION['flash_mode'])) {
             object-fit: cover;
         }
         
-        /* Pulse animation for new items */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-        
-        .pulse-animation {
-            animation: pulse 2s infinite;
-        }
+    
         
         /* Floating animation */
         @keyframes floating {
@@ -409,24 +400,10 @@ if (isset($_SESSION['flash_mode'])) {
                     <li class="nav-item">
                         <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/Alumni-Portal-main/logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+                    </li>                  
                     
-                    <!-- User Profile Dropdown -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            <?php if ($profilePic != "default_profile.jpg") { ?>
-                                <img src="images/<?php echo htmlspecialchars($profilePic); ?>" class="nav-profile-img" alt="Profile Picture">
-                            <?php } else { ?>
-                                <i class="bi bi-person-circle nav-bi"></i>
-                            <?php } ?>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><a class="dropdown-item" href="view_profile.php?email=<?= htmlspecialchars($_SESSION['logged_account']['email']) ?>"><i class="bi bi-person me-2"></i>Profile</a></li>
-                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
-                    </li>
                 </ul>
             </div>
         </div>
