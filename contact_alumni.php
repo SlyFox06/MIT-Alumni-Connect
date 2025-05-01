@@ -110,7 +110,7 @@ function determineSenderEmail($senderDomain, $receiverDomain) {
         'yahoo.com-company.com' => 'yahoo-relay@atharv.edu',
         '*-gmail.com' => 'gmail-contact@mit.edu',
         '*-yahoo.com' => 'yahoo-contact@mit.edu',
-        'default' => 'noreply@atharv.edu'
+        'default' => 'noreply@mit.edu'
     ];
     
     $key = "$senderDomain-$receiverDomain";

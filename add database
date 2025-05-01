@@ -121,3 +121,5 @@ image_path VARCHAR(255) NOT NULL,
  upload_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 FOREIGN KEY (event_id) REFERENCES alumni_gallery_events(id) ON DELETE CASCADE
  );
+ -------------------------------------------------------------------------------
+ 
