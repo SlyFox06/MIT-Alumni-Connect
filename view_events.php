@@ -167,51 +167,47 @@ if ($result->num_rows > 0) {
 
         /* Navbar Styles */
         .navbar {
-        background: white;
-        box-shadow:0 0 5px rgba(0,0,0,.3);
-        padding: 0.8rem 1rem !important;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 1030;
-        min-height: 60px;
-        display: flex;
-        align-items: center;
-    }
+            background: white;
+            box-shadow:0 0 5px rgba(0,0,0,.3);
+            padding: 0.8rem 1rem !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
 
-    .navbar-nav {
-    margin-left: auto; /* Pushes items to the right */
-    display: flex;
-    align-items: center; /* Vertical centering for nav items */
-}
+        .navbar-nav {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
         
-.navbar-brand {
-        font-weight: 600;
-        color: #4361ee;
-        font-size: 1.3rem;
-        letter-spacing: 0.5px;
-        margin-right: 3rem; /* Add more space after the brand */
-    }
+        .navbar-brand {
+            font-weight: 600;
+            color: #4361ee;
+            font-size: 1.3rem;
+            letter-spacing: 0.5px;
+            margin-right: 3rem;
+        }
 
-    .navbar-brand:hover {
+        .navbar-brand:hover {
             color: #3D1165;
             transition: 0.5s ease;
         }
 
-        /* .navbar-brand span {
-            color: var(--secondary);
-        } */
-
         .nav-item {
-    margin-left: -3px;
-    margin-right: -3px;
-}
+            margin-left: -3px;
+            margin-right: -3px;
+        }
 
-.navbar .container {
-    display: flex;
-    align-items: center;
-}
+        .navbar .container {
+            display: flex;
+            align-items: center;
+        }
 
         .nav-link {
             font-weight: 500;
@@ -224,12 +220,10 @@ if ($result->num_rows > 0) {
         }
 
         .nav-link:hover {
-                color: var(--secondary);
-                /* slight color shift */
-                background: rgba(67, 97, 238, 0.15);
-                transform: translateY(-2px);
-            }
-        
+            color: var(--secondary);
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
 
         .nav-button:hover {
             transform: translateY(-2px);
@@ -277,14 +271,105 @@ if ($result->num_rows > 0) {
             color: var(--primary);
         }
         
-        .card-img-top {
+        .card-img-container {
+            position: relative;
+            overflow: hidden;
             height: 200px;
+        }
+        
+        .card-img-top {
+            height: 100%;
+            width: 100%;
             object-fit: cover;
             transition: transform 0.5s ease;
+            cursor: zoom-in;
         }
         
         .event-card:hover .card-img-top {
             transform: scale(1.05);
+        }
+        
+        /* Image overlay styles */
+        .img-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-icon {
+            color: white;
+            font-size: 2rem;
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s ease;
+        }
+
+        .event-card:hover .img-overlay {
+            opacity: 1;
+        }
+
+        .event-card:hover .zoom-icon {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        /* Modal Styles */
+        .modal-content {
+            background-color: transparent !important;
+            border: none;
+        }
+
+        .modal-body {
+            padding: 0;
+            text-align: center;
+        }
+
+        #modalImage {
+            max-height: 80vh;
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        #modalImage:hover {
+            transform: scale(1.02);
+        }
+
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.7) !important;
+        }
+
+        .modal-open .navbar {
+            z-index: auto;
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1050;
+        }
+
+        .close-modal-btn:hover {
+            background: rgba(0,0,0,0.9);
         }
         
         /* Button animations */
@@ -363,8 +448,6 @@ if ($result->num_rows > 0) {
             to { opacity: 1; transform: translateY(0); }
         }
         
-      
-        
         /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 10px;
@@ -418,7 +501,7 @@ if ($result->num_rows > 0) {
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="view_gallery.php"><i class="bi bi-images me-1"></i> Gallery</a>
-    </li>
+                    </li>
                 </ul>
                 
                 <!-- Right-aligned items -->
@@ -580,7 +663,12 @@ if ($result->num_rows > 0) {
                 ?>
                     <div class="col" data-aos="fade-up" data-aos-delay="<?= $count * 50 ?>">
                         <div class="card h-100 event-card <?= $featuredClass ?>">
-                            <img src="images/<?= htmlspecialchars($event['photo']) ?>" class="card-img-top" alt="<?= htmlspecialchars($event['title']) ?>">
+                            <div class="card-img-container">
+                                <img src="images/<?= htmlspecialchars($event['photo']) ?>" class="card-img-top" alt="<?= htmlspecialchars($event['title']) ?>">
+                                <div class="img-overlay">
+                                    <span class="zoom-icon"><i class="bi bi-zoom-in"></i></span>
+                                </div>
+                            </div>
                             <div class="card-body">
                                 <div class="d-flex justify-content-between mb-2">
                                     <span class="badge <?= $event['type'] === 'Event' ? 'bg-success' : 'bg-warning' ?>">
@@ -705,6 +793,20 @@ if ($result->num_rows > 0) {
         </div>
     </div>
 
+    <!-- Image Modal -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-body text-center">
+                    <img id="modalImage" src="" class="img-fluid" style="max-height: 80vh;">
+                    <button type="button" class="close-modal-btn" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Back to Top Button -->
     <button id="backToTop" class="btn btn-primary rounded-circle position-fixed bottom-0 end-0 m-4 p-3 shadow-lg animate__animated animate__fadeInUp">
         <i class="bi bi-arrow-up"></i>
@@ -716,9 +818,9 @@ if ($result->num_rows > 0) {
     <script>
         // Initialize AOS
         AOS.init({
-            once: true, // whether animation should happen only once - while scrolling down
-            duration: 600, // values from 0 to 3000, with step 50ms
-            easing: 'ease-out-quad', // default easing for AOS animations
+            once: true,
+            duration: 600,
+            easing: 'ease-out-quad',
         });
         
         // Navbar scroll effect
