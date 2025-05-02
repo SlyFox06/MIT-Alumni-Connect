@@ -764,7 +764,7 @@ try {
             </div>
             <div class="gallery-grid">
                 <div class="gallery-item">
-                    <img src="https://source.unsplash.com/random/600x400/?graduation" alt="Event photo">
+                    <img src="images\events1.jpeg" alt="Event photo">
                 </div>
                 <div class="gallery-item">
                     <img src="https://source.unsplash.com/random/600x400/?conference" alt="Event photo">
