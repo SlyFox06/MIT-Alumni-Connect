@@ -464,11 +464,6 @@ try {
                 font-size: 1rem;
             }
 
-            .gallery-grid {
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            }
-
-            .gallery-title,
             .map-title {
                 font-size: 1.5rem;
             }
@@ -504,18 +499,60 @@ try {
                 font-size: 2rem;
             }
 
-            .gallery-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
-            }
 
-            .gallery-item {
-                height: 150px;
-            }
 
             .map-container {
                 height: 300px;
             }
+/* Gallery Carousel Styles */
+.gallery-carousel-img {
+    height: 400px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.carousel-inner {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.carousel-caption {
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 8px;
+    padding: 15px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+}
+
+.carousel-indicators button {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin: 0 5px;
+}
+
+@media (max-width: 768px) {
+    .gallery-carousel-img {
+        height: 300px;
+    }
+    
+    .carousel-caption {
+        width: 90%;
+        padding: 10px;
+    }
+    
+    .carousel-caption h5 {
+        font-size: 1rem;
+    }
+    
+    .carousel-caption p {
+        font-size: 0.8rem;
+        margin-bottom: 0;
+    }
+}
         }
     </style>
 </head>
@@ -757,26 +794,74 @@ try {
         </div>
 
         <!-- Gallery Section -->
-        <div class="gallery-section">
-            <div class="gallery-header">
-                <h2 class="gallery-title"><i class="bi bi-images me-2"></i> Recent Event Gallery</h2>
-                <a href="view_gallery.php" class="btn btn-outline-primary btn-sm">View All</a>
-            </div>
-            <div class="gallery-grid">
-                <div class="gallery-item">
-                    <img src="images\events1.jpeg" alt="Event photo">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://source.unsplash.com/random/600x400/?conference" alt="Event photo">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://source.unsplash.com/random/600x400/?networking" alt="Event photo">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://source.unsplash.com/random/600x400/?lecture" alt="Event photo">
-                </div>
-            </div>
+<div class="gallery-section">
+    <div class="gallery-header">
+        <h2 class="gallery-title"><i class="bi bi-images me-2"></i> Recent Event Gallery</h2>
+        <a href="view_gallery.php" class="btn btn-outline-primary btn-sm">View All</a>
+    </div>
+    
+    <!-- Carousel -->
+    <div id="galleryCarousel" class="carousel slide" data-bs-ride="carousel">
+        <!-- Indicators -->
+        <div class="carousel-indicators">
+            <?php
+            $gallery_query = $conn->query("SELECT * FROM gallery_table ORDER BY upload_date DESC LIMIT 5");
+            $i = 0;
+            while($image = $gallery_query->fetch_assoc()):
+            ?>
+            <button type="button" data-bs-target="#galleryCarousel" data-bs-slide-to="<?= $i ?>" <?= $i == 0 ? 'class="active"' : '' ?> aria-label="Slide <?= $i + 1 ?>"></button>
+            <?php 
+            $i++;
+            endwhile; 
+            ?>
         </div>
+        
+        <div class="carousel-inner">
+            <?php
+            // Reset pointer
+            $gallery_query->data_seek(0);
+            $active = true;
+            
+            while($image = $gallery_query->fetch_assoc()):
+            ?>
+            <div class="carousel-item <?= $active ? 'active' : '' ?>">
+                <div class="d-flex justify-content-center">
+                    <img src="uploads/gallery/<?= htmlspecialchars($image['image_path']) ?>" 
+                         class="d-block gallery-carousel-img" 
+                         alt="<?= htmlspecialchars($image['description']) ?>"
+                         style="width: 100%; height: 400px; object-fit: cover;">
+                </div>
+                <div class="carousel-caption d-none d-md-block">
+                    <h5><?= htmlspecialchars($image['title']) ?></h5>
+                    <p><?= htmlspecialchars($image['description']) ?></p>
+                </div>
+            </div>
+            <?php 
+            $active = false;
+            endwhile; 
+            ?>
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#galleryCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#galleryCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+</div>
+
+<script>
+    // Initialize carousel with 5-second interval
+    document.addEventListener('DOMContentLoaded', function() {
+        var myCarousel = document.getElementById('galleryCarousel');
+        var carousel = new bootstrap.Carousel(myCarousel, {
+            interval: 5000, // 5 seconds
+            ride: 'carousel'
+        });
+    });
+</script>
 
         <hr class="section-divider">
 
