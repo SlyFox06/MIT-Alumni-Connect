@@ -1,212 +1,53 @@
 <?php
 session_start();
-require_once 'logged_admin.php';
-require_once 'db_controller.php';
+require 'db_controller.php';
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// Constants
-define('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB per file
-define('MAX_TOTAL_UPLOAD_SIZE', 50 * 1024 * 1024); // 50MB total
-define('MAX_FILES_PER_UPLOAD', 20);
-define('UPLOAD_DIR', 'uploads/gallery/');
-define('THUMBNAIL_WIDTH', 300);
-
-// Validate event ID
-$event_id = filter_input(INPUT_GET, 'event_id', FILTER_VALIDATE_INT);
-if (!$event_id) {
-    $_SESSION['error'] = "Invalid event ID";
-    header("Location: manage_gallery.php");
+// Check if user is logged in
+if (!isset($_SESSION['logged_account'])) {
+    header("Location: login.php");
     exit;
 }
 
-// Get event details
-try {
-    $stmt = $conn->prepare("SELECT * FROM alumni_gallery_events WHERE id = ?");
-    $stmt->bind_param("i", $event_id);
-    $stmt->execute();
-    $event = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    
-    if (!$event) {
-        $_SESSION['error'] = "Event not found";
-        header("Location: manage_gallery.php");
-        exit;
-    }
-} catch (Exception $e) {
-    $_SESSION['error'] = "Database error: " . $e->getMessage();
-    header("Location: manage_gallery.php");
-    exit;
+$email = $_SESSION['logged_account']['email'];
+
+// Error handling for DB connection
+if ($conn->connect_error) {
+    error_log("Database connection error: " . $conn->connect_error);
+    die("We're experiencing technical difficulties. Please try again later.");
 }
 
-// Check GD library availability
-$gd_enabled = extension_loaded('gd');
+// Get all active events with their photo count and thumbnail
+$events = [];
+$stmt = $conn->prepare("
+    SELECT e.*, 
+    (SELECT COUNT(*) FROM alumni_gallery_photos WHERE event_id = e.id) as photo_count,
+    (SELECT thumbnail_path FROM alumni_gallery_photos WHERE event_id = e.id LIMIT 1) as thumbnail_path
+    FROM alumni_gallery_events e
+    WHERE e.is_active = 1
+    ORDER BY e.event_date DESC
+");
 
-// Handle file upload
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['gallery_images'])) {
-    // Validate CSRF token
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        $_SESSION['error'] = "Invalid CSRF token";
-        header("Location: add_photos.php?event_id=" . $event_id);
-        exit;
-    }
-
-    try {
-        // Validate uploads
-        if (empty($_FILES['gallery_images']['name'][0])) {
-            throw new Exception("Please select at least one image to upload");
-        }
-        
-        $file_count = count($_FILES['gallery_images']['name']);
-        $total_size = array_sum($_FILES['gallery_images']['size']);
-        
-        if ($file_count > MAX_FILES_PER_UPLOAD) {
-            throw new Exception("You can upload a maximum of " . MAX_FILES_PER_UPLOAD . " files at once");
-        }
-        
-        if ($total_size > MAX_TOTAL_UPLOAD_SIZE) {
-            throw new Exception("Total upload size exceeds " . (MAX_TOTAL_UPLOAD_SIZE/1024/1024) . "MB limit");
-        }
-
-        // Create upload directory if needed
-        if (!file_exists(UPLOAD_DIR) && !mkdir(UPLOAD_DIR, 0755, true)) {
-            throw new Exception("Failed to create upload directory");
-        }
-        
-        if (!is_writable(UPLOAD_DIR)) {
-            throw new Exception("Upload directory is not writable");
-        }
-        
-        $allowed_exts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-        $uploaded_files = [];
-        
-        // Process each file
-        foreach ($_FILES['gallery_images']['tmp_name'] as $key => $tmp_name) {
-            $file_error = $_FILES['gallery_images']['error'][$key];
-            $file_name = $_FILES['gallery_images']['name'][$key];
-            $file_size = $_FILES['gallery_images']['size'][$key];
-            
-            // Validate file
-            if ($file_error !== UPLOAD_ERR_OK) {
-                throw new Exception("Error uploading file '$file_name'");
-            }
-            
-            if (!file_exists($tmp_name)) {
-                throw new Exception("Temporary file '$file_name' doesn't exist");
-            }
-            
-            $image_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
-            if (!in_array($image_ext, $allowed_exts)) {
-                throw new Exception("Invalid file type '$file_name'");
-            }
-            
-            if ($file_size > MAX_FILE_SIZE) {
-                throw new Exception("File '$file_name' exceeds size limit");
-            }
-            
-            if (!getimagesize($tmp_name)) {
-                throw new Exception("File '$file_name' is not a valid image");
-            }
-            
-            // Generate unique filename and move file
-            $new_name = uniqid('img_', true) . '.' . $image_ext;
-            $target_file = UPLOAD_DIR . $new_name;
-            
-            if (!move_uploaded_file($tmp_name, $target_file)) {
-                throw new Exception("Failed to save file '$file_name'");
-            }
-            
-            // Create thumbnail if GD is available
-            $thumbnail_path = $gd_enabled ? UPLOAD_DIR . 'thumb_' . $new_name : $target_file;
-            if ($gd_enabled && !createThumbnail($target_file, $thumbnail_path, THUMBNAIL_WIDTH)) {
-                $thumbnail_path = $target_file; // Fallback to original
-            }
-            
-            // Save to database
-            $stmt = $conn->prepare("INSERT INTO alumni_gallery_photos (event_id, image_path, thumbnail_path) VALUES (?, ?, ?)");
-            $stmt->bind_param("iss", $event_id, $target_file, $thumbnail_path);
-            
-            if (!$stmt->execute()) {
-                // Clean up files if DB insert fails
-                @unlink($target_file);
-                if ($thumbnail_path != $target_file) @unlink($thumbnail_path);
-                throw new Exception("Database error: " . $stmt->error);
-            }
-            
-            $stmt->close();
-            $uploaded_files[] = $target_file;
-        }
-        
-        $_SESSION['success'] = "Successfully uploaded $file_count photos!";
-        header("Location: view_gallery_admin.php?event_id=" . $event_id);
-        exit;
-        
-    } catch (Exception $e) {
-        // Clean up any uploaded files on error
-        if (!empty($uploaded_files)) {
-            foreach ($uploaded_files as $file) {
-                @unlink($file);
-                $thumb = UPLOAD_DIR . 'thumb_' . basename($file);
-                if (file_exists($thumb)) @unlink($thumb);
-            }
-        }
-        $_SESSION['error'] = $e->getMessage();
-        header("Location: add_photos.php?event_id=" . $event_id);
-        exit;
-    }
+if (!$stmt) {
+    error_log("Prepare failed: " . $conn->error);
+    die("We're experiencing technical difficulties. Please try again later.");
 }
 
-// Thumbnail creation function
-function createThumbnail($src, $dest, $targetWidth) {
-    if (!function_exists('imagecreatetruecolor')) return false;
-    
-    $info = getimagesize($src);
-    if ($info === false) return false;
-    
-    list($width, $height, $type) = $info;
-    
-    switch ($type) {
-        case IMAGETYPE_JPEG: $source = imagecreatefromjpeg($src); break;
-        case IMAGETYPE_PNG: $source = imagecreatefrompng($src); break;
-        case IMAGETYPE_GIF: $source = imagecreatefromgif($src); break;
-        case IMAGETYPE_WEBP: $source = imagecreatefromwebp($src); break;
-        default: return false;
+if ($stmt->execute()) {
+    $result = $stmt->get_result();
+    while ($row = $result->fetch_assoc()) {
+        // Verify thumbnail exists
+        if (!empty($row['thumbnail_path']) && !file_exists($row['thumbnail_path'])) {
+            $row['thumbnail_path'] = null;
+        }
+        $events[] = $row;
     }
-    
-    if (!$source) return false;
-    
-    $targetHeight = (int)($height * ($targetWidth / $width));
-    $thumbnail = imagecreatetruecolor($targetWidth, $targetHeight);
-    
-    // Handle transparency
-    if ($type == IMAGETYPE_PNG || $type == IMAGETYPE_GIF) {
-        imagecolortransparent($thumbnail, imagecolorallocatealpha($thumbnail, 0, 0, 0, 127));
-        imagealphablending($thumbnail, false);
-        imagesavealpha($thumbnail, true);
-    }
-    
-    imagecopyresampled($thumbnail, $source, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
-    
-    $result = false;
-    switch ($type) {
-        case IMAGETYPE_JPEG: $result = imagejpeg($thumbnail, $dest, 85); break;
-        case IMAGETYPE_PNG: $result = imagepng($thumbnail, $dest, 8); break;
-        case IMAGETYPE_GIF: $result = imagegif($thumbnail, $dest); break;
-        case IMAGETYPE_WEBP: $result = imagewebp($thumbnail, $dest, 85); break;
-    }
-    
-    imagedestroy($source);
-    imagedestroy($thumbnail);
-    
-    return $result;
+} else {
+    error_log("Execute failed: " . $stmt->error);
+    die("We're experiencing technical difficulties. Please try again later.");
 }
 
-// Generate CSRF token if not exists
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+$stmt->close();
+$conn->close();
 ?>
 
 <!DOCTYPE html>
@@ -214,195 +55,321 @@ if (empty($_SESSION['csrf_token'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Photos - <?= htmlspecialchars($event['event_name']) ?></title>
+    <title>Photo Gallery | MIT Alumni Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #002c59;
-            --secondary-color: #f8f9fa;
+            --primary: #4361ee;
+            --primary-light: #4f6cff;
+            --secondary: #3f37c9;
+            --accent: #4cc9f0;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --space-unit: 1.5rem;
         }
-        
+
         body {
-            background-color: var(--secondary-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', sans-serif;
+            background-color: #F0F2F5;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+            padding-top: 80px;
         }
-        
+
+        /* Navbar Styles */
         .navbar {
-            background-color: var(--primary-color) !important;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            background: white;
+            box-shadow: 0 0 5px rgba(0,0,0,.3);
+            padding: 0.8rem 1rem !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-nav {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
         }
         
-        .card {
+        .navbar-brand {
+            font-weight: 600;
+            color: #4361ee;
+            font-size: 1.3rem;
+            letter-spacing: 0.5px;
+            margin-right: 3rem;
+        }
+
+        .navbar-brand:hover {
+            color: #3D1165;
+            transition: 0.5s ease;
+        }
+
+        .nav-item {
+            margin-left: -3px;
+            margin-right: -3px;
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--dark);
+            padding: 0.5rem 1rem;
+            margin: 0px 10px;
+            border-radius: 1px;
+            transition: all 0.3s ease-in-out;
+            border-radius: 5px !important;
+        }
+
+        .nav-link:hover {
+            color: var(--secondary);
+            background: rgba(67, 97, 238, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Gallery Styles */
+        .gallery-container {
+            padding: 2rem 0;
+        }
+
+        .event-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 2rem;
             border: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .upload-area {
-            border: 2px dashed #dee2e6;
-            border-radius: 8px;
-            padding: 2rem;
-            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             cursor: pointer;
-            transition: all 0.3s;
-            background-color: rgba(0, 44, 89, 0.02);
+            height: 100%;
+            overflow: hidden;
         }
-        
-        .upload-area:hover {
-            border-color: var(--primary-color);
-            background-color: rgba(0, 44, 89, 0.05);
+
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
         }
-        
-        .file-preview {
-            width: 120px;
-            height: 120px;
+
+        .event-thumbnail {
+            width: 100%;
+            height: 200px;
             object-fit: cover;
-            border-radius: 8px;
-            margin: 5px;
-            position: relative;
+            transition: transform 0.5s ease;
         }
-        
-        .remove-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 24px;
-            height: 24px;
-            background-color: rgba(255, 0, 0, 0.8);
-            color: white;
-            border-radius: 50%;
+
+        .event-card:hover .event-thumbnail {
+            transform: scale(1.05);
+        }
+
+        .default-thumbnail {
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s;
+            height: 200px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
-        
-        .file-preview:hover .remove-btn {
-            opacity: 1;
+
+        .empty-gallery {
+            text-align: center;
+            padding: 4rem;
+            color: #6c757d;
         }
-        
-        .file-size {
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.75rem;
+
+        .view-gallery-btn {
+            transition: all 0.3s ease;
+            background-color: var(--primary);
+            border: none;
         }
-        
-        .event-thumbnail {
-            max-width: 200px;
-            max-height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
+
+        .view-gallery-btn:hover {
+            background-color: var(--secondary);
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        .carousel-item img {
+            max-height: 70vh;
+            object-fit: contain;
+            margin: 0 auto;
+        }
+
+        .carousel-control-prev, .carousel-control-next {
+            background-color: rgba(0,0,0,0.3);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .carousel-caption {
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                margin-right: 1rem;
+                font-size: 1.1rem;
+            }
+            
+            .nav-link {
+                padding: 0.5rem;
+                margin: 0 5px;
+            }
+            
+            .event-thumbnail {
+                height: 150px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            body {
+                padding-top: 70px;
+            }
+            
+            .event-card {
+                margin-bottom: 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="manage_gallery.php">Gallery Admin</a>
-            <a href="view_gallery_admin.php?event_id=<?= $event_id ?>" class="btn btn-outline-light">
-                <i class="bi bi-arrow-left"></i> Back to Event
+            <a class="navbar-brand" href="main_menu.php">
+                <span>MIT</span> ALUMNI PORTAL
             </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="main_menu.php"><i class="bi bi-house-door me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_alumni.php"><i class="bi bi-people me-1"></i> Alumni</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_events.php"><i class="bi bi-calendar-event me-1"></i> Events</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="view_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="logout.php"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <?php if (isset($_SESSION['error'])): ?>
-                    <div class="alert alert-danger mb-4">
-                        <?= $_SESSION['error']; unset($_SESSION['error']); ?>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (isset($_SESSION['success'])): ?>
-                    <div class="alert alert-success mb-4">
-                        <?= $_SESSION['success']; unset($_SESSION['success']); ?>
-                    </div>
-                <?php endif; ?>
-                
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Event: <?= htmlspecialchars($event['event_name']) ?></h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="d-flex align-items-center">
-                            <?php
-                            // Get a sample thumbnail from the event
-                            $sample_photo = null;
-                            $stmt = $conn->prepare("SELECT thumbnail_path FROM alumni_gallery_photos WHERE event_id = ? LIMIT 1");
-                            $stmt->bind_param("i", $event_id);
-                            $stmt->execute();
-                            $result = $stmt->get_result();
-                            if ($result->num_rows > 0) {
-                                $sample_photo = $result->fetch_assoc()['thumbnail_path'];
-                            }
-                            $stmt->close();
-                            ?>
-                            
-                            <?php if ($sample_photo && file_exists($sample_photo)): ?>
-                                <img src="<?= htmlspecialchars($sample_photo) ?>" class="event-thumbnail me-4">
+    <!-- Loading Spinner -->
+    <div class="loading-spinner" id="loadingSpinner">
+        <div class="spinner-border text-primary"></div>
+    </div>
+
+    <div class="container gallery-container">
+        <h1 class="mb-4 animate__animated animate__fadeIn">Photo Gallery</h1>
+        
+        <?php if (empty($events)): ?>
+            <div class="empty-gallery animate__animated animate__fadeIn">
+                <i class="bi bi-images" style="font-size: 3rem;"></i>
+                <h3 class="mt-3">No Events Available</h3>
+                <p>Check back later for upcoming gallery events.</p>
+            </div>
+        <?php else: ?>
+            <div class="row">
+                <?php foreach ($events as $event): ?>
+                    <div class="col-md-4 mb-4 animate__animated animate__fadeIn">
+                        <div class="card event-card h-100">
+                            <?php if (!empty($event['thumbnail_path'])): ?>
+                                <img src="<?php echo htmlspecialchars($event['thumbnail_path']); ?>" 
+                                     class="event-thumbnail" 
+                                     alt="<?php echo htmlspecialchars($event['event_name']); ?>"
+                                     onerror="this.src='assets/default-image.jpg'">
                             <?php else: ?>
-                                <div class="d-flex align-items-center justify-content-center bg-light rounded me-4" style="width: 200px; height: 200px;">
+                                <div class="default-thumbnail">
                                     <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
                                 </div>
                             <?php endif; ?>
-                            
-                            <div>
-                                <p class="mb-2">
-                                    <i class="bi bi-calendar me-2"></i>
-                                    <?= date('F j, Y', strtotime($event['event_date'])) ?>
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title"><?php echo htmlspecialchars($event['event_name']); ?></h5>
+                                <p class="card-text text-muted">
+                                    <small><?php echo date('F j, Y', strtotime($event['event_date'])); ?></small>
                                 </p>
-                                <?php if (!empty($event['description'])): ?>
-                                    <p class="mb-0"><?= nl2br(htmlspecialchars($event['description'])) ?></p>
-                                <?php endif; ?>
+                                <p class="card-text flex-grow-1"><?php echo htmlspecialchars($event['description']); ?></p>
+                                <button class="btn btn-primary view-gallery-btn mt-auto" 
+                                        data-event-id="<?php echo htmlspecialchars($event['id']); ?>"
+                                        data-event-name="<?php echo htmlspecialchars($event['event_name']); ?>">
+                                    View Gallery (<?php echo (int)$event['photo_count']; ?> photos)
+                                </button>
                             </div>
                         </div>
                     </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Gallery Modal -->
+    <div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="galleryModalLabel">Event Gallery</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Upload Photos</h5>
+                <div class="modal-body">
+                    <div id="eventCarousel" class="carousel slide" data-bs-ride="false">
+                        <div class="carousel-inner" id="carousel-inner">
+                            <!-- Content loaded dynamically -->
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#eventCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#eventCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
                     </div>
-                    <div class="card-body">
-                        <?php if (!$gd_enabled): ?>
-                            <div class="alert alert-warning mb-4">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                GD library is not enabled - thumbnails will not be generated
-                            </div>
-                        <?php endif; ?>
-                        
-                        <form method="POST" enctype="multipart/form-data" id="uploadForm">
-                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-                            
-                            <div class="mb-4">
-                                <div class="upload-area" id="dropArea">
-                                    <i class="bi bi-cloud-arrow-up fs-1 text-primary mb-3"></i>
-                                    <h5>Drag & drop photos here</h5>
-                                    <p class="text-muted mb-0">
-                                        or click to browse (max <?= MAX_FILES_PER_UPLOAD ?> files, <?= MAX_FILE_SIZE/1024/1024 ?>MB each)
-                                    </p>
-                                </div>
-                                <input type="file" class="d-none" name="gallery_images[]" id="fileInput" multiple accept="image/*" required>
-                                <div class="d-flex flex-wrap mt-3" id="previewContainer"></div>
-                                <div class="d-flex justify-content-between mt-2">
-                                    <small class="text-muted" id="fileCount">0 files selected</small>
-                                    <small class="text-muted" id="totalSize">0MB</small>
-                                </div>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary w-100 py-2">
-                                <i class="bi bi-upload me-2"></i> Upload Photos
-                            </button>
-                        </form>
-                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <a href="#" class="btn btn-primary" id="downloadAllBtn" style="display: none;">
+                        <i class="bi bi-download me-1"></i> Download All
+                    </a>
                 </div>
             </div>
         </div>
@@ -410,140 +377,138 @@ if (empty($_SESSION['csrf_token'])) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropArea = document.getElementById('dropArea');
-            const fileInput = document.getElementById('fileInput');
-            const previewContainer = document.getElementById('previewContainer');
-            const fileCount = document.getElementById('fileCount');
-            const totalSize = document.getElementById('totalSize');
-            const uploadForm = document.getElementById('uploadForm');
-            
-            // Format file size
-            function formatSize(bytes) {
-                if (bytes < 1024) return bytes + 'B';
-                if (bytes < 1048576) return (bytes/1024).toFixed(1) + 'KB';
-                return (bytes/1048576).toFixed(1) + 'MB';
-            }
-            
-            // Update file info display
-            function updateFileInfo() {
-                const files = fileInput.files;
-                let totalBytes = 0;
-                Array.from(files).forEach(file => totalBytes += file.size);
+    document.addEventListener('DOMContentLoaded', function() {
+        const viewButtons = document.querySelectorAll('.view-gallery-btn');
+        const galleryModal = new bootstrap.Modal(document.getElementById('galleryModal'));
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const downloadAllBtn = document.getElementById('downloadAllBtn');
+        
+        // Show loading spinner
+        function showLoading() {
+            loadingSpinner.style.display = 'flex';
+        }
+        
+        // Hide loading spinner
+        function hideLoading() {
+            loadingSpinner.style.display = 'none';
+        }
+        
+        viewButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const eventId = this.getAttribute('data-event-id');
+                const eventName = this.getAttribute('data-event-name');
                 
-                fileCount.textContent = `${files.length} file${files.length !== 1 ? 's' : ''} selected`;
-                totalSize.textContent = formatSize(totalBytes);
-                
-                if (totalBytes > <?= MAX_TOTAL_UPLOAD_SIZE ?>) {
-                    totalSize.classList.add('text-danger');
-                } else {
-                    totalSize.classList.remove('text-danger');
-                }
-            }
-            
-            // Handle drag and drop
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, preventDefaults, false);
-            });
-            
-            function preventDefaults(e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropArea.addEventListener(eventName, () => dropArea.classList.add('border-primary'));
-            });
-            
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropArea.addEventListener(eventName, () => dropArea.classList.remove('border-primary'));
-            });
-            
-            dropArea.addEventListener('drop', handleDrop, false);
-            dropArea.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', handleFiles);
-            
-            function handleDrop(e) {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                fileInput.files = files;
-                handleFiles();
-            }
-            
-            // Handle selected files
-            function handleFiles() {
-                previewContainer.innerHTML = '';
-                const files = fileInput.files;
-                
-                if (!files || files.length === 0) {
-                    updateFileInfo();
+                if (!eventId) {
+                    console.error('No event ID found on button');
                     return;
                 }
                 
-                // Limit number of files
-                if (files.length > <?= MAX_FILES_PER_UPLOAD ?>) {
-                    alert(`You can upload a maximum of <?= MAX_FILES_PER_UPLOAD ?> files. Only the first <?= MAX_FILES_PER_UPLOAD ?> will be selected.`);
-                    const dt = new DataTransfer();
-                    for (let i = 0; i < Math.min(files.length, <?= MAX_FILES_PER_UPLOAD ?>); i++) {
-                        dt.items.add(files[i]);
-                    }
-                    fileInput.files = dt.files;
-                    return handleFiles(); // Recursively process the limited files
-                }
-                
-                // Process each file
-                Array.from(files).forEach(file => {
-                    if (!file.type.match('image.*')) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const preview = document.createElement('div');
-                        preview.className = 'file-preview';
-                        preview.innerHTML = `
-                            <img src="${e.target.result}" class="w-100 h-100">
-                            <div class="remove-btn">×</div>
-                            <div class="file-size">${formatSize(file.size)}</div>
-                        `;
-                        
-                        preview.querySelector('.remove-btn').addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            const dt = new DataTransfer();
-                            Array.from(fileInput.files).forEach(f => {
-                                if (f !== file) dt.items.add(f);
-                            });
-                            fileInput.files = dt.files;
-                            preview.remove();
-                            updateFileInfo();
-                        });
-                        
-                        previewContainer.appendChild(preview);
-                    };
-                    reader.readAsDataURL(file);
-                });
-                
-                updateFileInfo();
-            }
-            
-            // Form validation
-            uploadForm.addEventListener('submit', function(e) {
-                const files = fileInput.files;
-                
-                if (!files || files.length === 0) {
-                    e.preventDefault();
-                    alert('Please select at least one image to upload');
-                    return;
-                }
-                
-                let totalSize = 0;
-                Array.from(files).forEach(file => totalSize += file.size);
-                
-                if (totalSize > <?= MAX_TOTAL_UPLOAD_SIZE ?>) {
-                    e.preventDefault();
-                    alert('Total upload size exceeds <?= MAX_TOTAL_UPLOAD_SIZE/1024/1024 ?>MB limit');
-                    return;
-                }
+                loadEventGallery(eventId, eventName);
             });
         });
+        
+        function loadEventGallery(eventId, eventName) {
+            const modalTitle = document.getElementById('galleryModalLabel');
+            const carouselInner = document.getElementById('carousel-inner');
+            
+            // Show loading state
+            showLoading();
+            modalTitle.textContent = 'Loading Gallery...';
+            carouselInner.innerHTML = '';
+            
+            // Show modal
+            galleryModal.show();
+            
+            // Fetch event photos
+            fetch(`get_event_photos.php?event_id=${encodeURIComponent(eventId)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    hideLoading();
+                    
+                    if (!data || !data.success) {
+                        throw new Error(data?.error || 'Failed to load gallery');
+                    }
+                    
+                    // Update modal title
+                    modalTitle.textContent = eventName || data.event?.event_name || 'Event Gallery';
+                    
+                    // Clear loading state
+                    carouselInner.innerHTML = '';
+                    
+                    // Check if there are photos
+                    if (!data.photos || data.photos.length === 0) {
+                        carouselInner.innerHTML = `
+                            <div class="carousel-item active">
+                                <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
+                                    <p class="text-muted">No photos available for this event</p>
+                                </div>
+                            </div>
+                        `;
+                        downloadAllBtn.style.display = 'none';
+                        return;
+                    }
+                    
+                    // Add photos to carousel
+                    data.photos.forEach((photo, index) => {
+                        const item = document.createElement('div');
+                        item.className = `carousel-item ${index === 0 ? 'active' : ''}`;
+                        item.innerHTML = `
+                            <img src="${escapeHtml(photo.image_path)}" 
+                                 class="d-block w-100" 
+                                 style="max-height: 70vh; object-fit: contain;"
+                                 onerror="this.onerror=null;this.src='assets/default-image.jpg'"
+                                 alt="Event photo ${index + 1}">
+                            <div class="carousel-caption d-none d-md-block">
+                                <p>${index + 1} of ${data.photos.length}</p>
+                            </div>
+                        `;
+                        carouselInner.appendChild(item);
+                    });
+                    
+                    // Show download all button if there are photos
+                    if (data.photos.length > 0) {
+                        downloadAllBtn.style.display = 'inline-block';
+                        downloadAllBtn.href = `download_photos.php?event_id=${eventId}`;
+                        downloadAllBtn.download = `${eventName || 'event'}_photos.zip`;
+                    } else {
+                        downloadAllBtn.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    console.error('Error loading gallery:', error);
+                    carouselInner.innerHTML = `
+                        <div class="carousel-item active">
+                            <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
+                                <p class="text-danger">Error: ${escapeHtml(error.message)}</p>
+                            </div>
+                        </div>
+                    `;
+                    downloadAllBtn.style.display = 'none';
+                });
+        }
+        
+        // Simple HTML escape function
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // Initialize carousel when modal is shown
+        galleryModal._element.addEventListener('shown.bs.modal', function() {
+            const carousel = new bootstrap.Carousel(document.getElementById('eventCarousel'));
+        });
+    });
     </script>
 </body>
 </html>
