@@ -122,4 +122,10 @@ image_path VARCHAR(255) NOT NULL,
 FOREIGN KEY (event_id) REFERENCES alumni_gallery_events(id) ON DELETE CASCADE
  );
  -------------------------------------------------------------------------------
- 
+ ALTER TABLE alumni_gallery_events 
+ADD COLUMN status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+ADD COLUMN created_by INT NULL,
+ADD COLUMN reviewed_by INT NULL,
+ADD COLUMN review_notes TEXT NULL,
+ADD COLUMN review_date DATETIME NULL;
+-----------------------------------------------------------------------------------------
