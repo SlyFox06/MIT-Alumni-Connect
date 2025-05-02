@@ -147,335 +147,262 @@ if ($result->num_rows > 0) {
 
     <style>
         :root {
-            --primary: #4361ee;
-            --primary-light: #4f6cff;
-            --secondary: #3f37c9;
-            --accent: #4cc9f0;
-            --light: #f8f9fa;
-            --dark: #212529;
-            --space-unit: 1.5rem;
-        }
+    --primary: #4361ee;
+    --primary-light: #4f6cff;
+    --secondary: #3f37c9;
+    --accent: #4cc9f0;
+    --light: #f8f9fa;
+    --dark: #212529;
+    --space-unit: 1.5rem;
+}
 
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #F0F2F5;
-            color: var(--dark);
-            line-height: 1.6;
-            overflow-x: hidden;
-            padding-top: 80px;
-        }
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: #F0F2F5;
+    color: var(--dark);
+    line-height: 1.6;
+    overflow-x: hidden;
+    padding-top: 80px;
+}
 
-        /* Navbar Styles */
-        .navbar {
-            background: white;
-            box-shadow:0 0 5px rgba(0,0,0,.3);
-            padding: 0.8rem 1rem !important;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-            min-height: 60px;
-            display: flex;
-            align-items: center;
-        }
+/* Navbar Styles */
+.navbar {
+    background: white;
+    box-shadow: 0 0 5px rgba(0,0,0,.3);
+    padding: 0.8rem 1rem !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
 
-        .navbar-nav {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-        }
-        
-        .navbar-brand {
-            font-weight: 600;
-            color: #4361ee;
-            font-size: 1.3rem;
-            letter-spacing: 0.5px;
-            margin-right: 3rem;
-        }
+.navbar.scrolled {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
 
-        .navbar-brand:hover {
-            color: #3D1165;
-            transition: 0.5s ease;
-        }
+.navbar-nav {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
 
-        .nav-item {
-            margin-left: -3px;
-            margin-right: -3px;
-        }
+.navbar-brand {
+    font-weight: 600;
+    color: #4361ee;
+    font-size: 1.3rem;
+    letter-spacing: 0.5px;
+    margin-right: 3rem;
+    transition: color 0.3s ease;
+}
 
-        .navbar .container {
-            display: flex;
-            align-items: center;
-        }
+.navbar-brand:hover {
+    color: #3D1165;
+}
 
-        .nav-link {
-            font-weight: 500;
-            color: var(--dark);
-            padding: 0.5rem 1rem;
-            margin: 0px 10px;
-            border-radius: 1px;
-            transition: all 0.3s ease-in-out;
-            border-radius: 5px 5px 5px 5px !important;
-        }
+.nav-item {
+    margin-left: -3px;
+    margin-right: -3px;
+}
 
-        .nav-link:hover {
-            color: var(--secondary);
-            background: rgba(67, 97, 238, 0.15);
-            transform: translateY(-2px);
-        }
+.nav-link {
+    font-weight: 500;
+    color: var(--dark);
+    padding: 0.5rem 1rem;
+    margin: 0 10px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
 
-        .nav-button:hover {
-            transform: translateY(-2px);
-            background-color:rgba(67, 97, 238, 0.15);
-            color:rgba(67, 97, 238, 0.15);
-        }
+.nav-link:hover {
+    color: var(--secondary);
+    background: rgba(67, 97, 238, 0.15);
+    transform: translateY(-2px);
+}
 
-        .nav-icon {
-            font-size: 1.2rem;
-        }
-        
-        /* Event cards with enhanced animations */
-        .event-card {
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
-            position: relative;
-        }
-        
-        .event-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(67, 97, 238, 0.1) 0%, rgba(76, 201, 240, 0.05) 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
-        
-        .event-card:hover {
-            transform: translateY(-8px) perspective(1000px) rotateX(2deg) rotateY(2deg);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-        }
-        
-        .event-card:hover::before {
-            opacity: 1;
-        }
-        
-        .event-card:hover .card-title {
-            color: var(--primary);
-        }
-        
-        .card-img-container {
-            position: relative;
-            overflow: hidden;
-            height: 200px;
-        }
-        
-        .card-img-top {
-            height: 100%;
-            width: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-            cursor: zoom-in;
-        }
-        
-        .event-card:hover .card-img-top {
-            transform: scale(1.05);
-        }
-        
-        /* Image overlay styles */
-        .img-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.3);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+/* Event Cards */
+.event-card {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    background: white;
+}
 
-        .zoom-icon {
-            color: white;
-            font-size: 2rem;
-            opacity: 0;
-            transform: scale(0.8);
-            transition: all 0.3s ease;
-        }
+.event-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+}
 
-        .event-card:hover .img-overlay {
-            opacity: 1;
-        }
+/* Image Container */
+.card-img-container {
+    position: relative;
+    overflow: hidden;
+    height: 200px;
+    cursor: pointer;
+}
 
-        .event-card:hover .zoom-icon {
-            opacity: 1;
-            transform: scale(1);
-        }
-        
-        /* Modal Styles */
-        .modal-content {
-            background-color: transparent !important;
-            border: none;
-        }
+.card-img-top {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease, filter 0.3s ease;
+}
 
-        .modal-body {
-            padding: 0;
-            text-align: center;
-        }
+.event-card:hover .card-img-top {
+    transform: scale(1.1);
+    filter: brightness(0.9);
+}
 
-        #modalImage {
-            max-height: 80vh;
-            max-width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 5px 25px rgba(0,0,0,0.3);
-            transition: transform 0.3s ease;
-        }
+/* Image Overlay */
+.img-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
 
-        #modalImage:hover {
-            transform: scale(1.02);
-        }
+.zoom-icon {
+    color: white;
+    font-size: 2rem;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+}
 
-        .modal-backdrop {
-            background-color: rgba(0,0,0,0.7) !important;
-        }
+.event-card:hover .img-overlay,
+.event-card:hover .zoom-icon {
+    opacity: 1;
+    transform: scale(1);
+}
 
-        .modal-open .navbar {
-            z-index: auto;
-        }
+/* Modal Styles */
+.modal-content {
+    background-color: transparent !important;
+    border: none;
+}
 
-        .close-modal-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.7);
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1050;
-        }
+.modal-body {
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 
-        .close-modal-btn:hover {
-            background: rgba(0,0,0,0.9);
-        }
-        
-        /* Button animations */
-        .btn-primary {
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
-        }
-        
-        .btn-primary::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 5px;
-            height: 5px;
-            background: rgba(255, 255, 255, 0.5);
-            opacity: 0;
-            border-radius: 100%;
-            transform: scale(1, 1) translate(-50%, -50%);
-            transform-origin: 50% 50%;
-        }
-        
-        .btn-primary:focus:not(:active)::after {
-            animation: ripple 0.6s ease-out;
-        }
-        
-        @keyframes ripple {
-            0% {
-                transform: scale(0, 0);
-                opacity: 0.5;
-            }
-            100% {
-                transform: scale(20, 20);
-                opacity: 0;
-            }
-        }
-        
-        /* Badge animations */
-        .badge {
-            transition: all 0.3s ease;
-        }
-        
-        .badge:hover {
-            transform: scale(1.05);
-        }
-        
-        /* Notification badge animation */
-        .notification-badge {
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        
-        /* Registration form animation */
-        .registration-form {
-            display: none;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            margin-top: 15px;
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--secondary);
-        }
-        
-        /* Back to top button */
-        #backToTop {
-            transition: all 0.3s ease;
-        }
-        
-        #backToTop:hover {
-            transform: translateY(-3px) rotate(5deg);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
+#modalImage {
+    max-height: 80vh;
+    max-width: 90vw;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+}
+
+.close-modal-btn {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0,0,0,0.7);
+    border: none;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    transition: all 0.3s ease;
+}
+
+.close-modal-btn:hover {
+    background: rgba(0,0,0,0.9);
+    transform: scale(1.1);
+}
+
+/* Button Styles */
+.btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.notification-badge {
+    animation: pulse 2s infinite;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .navbar-brand {
+        margin-right: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .nav-link {
+        padding: 0.5rem;
+        margin: 0 5px;
+    }
+    
+    .card-img-container {
+        height: 160px;
+    }
+}
+
+/* Back to Top Button */
+#backToTop {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+#backToTop.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+#backToTop:hover {
+    transform: translateY(-3px) rotate(5deg);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
     </style>
 </head>
 <body>
@@ -910,6 +837,36 @@ if ($result->num_rows > 0) {
                 }, 1000);
             });
         });
+
+        // Add this script to your existing JavaScript section
+
+// Image modal functionality
+document.querySelectorAll('.card-img-container').forEach(container => {
+    const img = container.querySelector('.card-img-top');
+    
+    // Click to show full image
+    container.addEventListener('click', function() {
+        const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+        document.getElementById('modalImage').src = img.src;
+        modal.show();
+    });
+    
+    // Add hover effect
+    container.style.cursor = 'zoom-in';
+});
+
+// Optional: Add keyboard accessibility for the modal
+document.getElementById('imageModal').addEventListener('shown.bs.modal', function() {
+    document.querySelector('.close-modal-btn').focus();
+});
+
+document.querySelector('.close-modal-btn').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('imageModal'));
+        modal.hide();
+    }
+});
+
     </script>
 </body>
 </html>
