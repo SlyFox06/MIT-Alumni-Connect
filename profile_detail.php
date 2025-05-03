@@ -137,7 +137,7 @@ include 'logged_user.php';
                         <a class="nav-link px-5" href="main_menu.php"><i class="bi bi-house-door"></i></a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link px-5" href="view_atharv.php"><i class="bi bi-people"></i></a>
+                        <a class="nav-link px-5" href="view_alumni.php"><i class="bi bi-people"></i></a>
                     </li>
                     <li class="nav-item mx-1">
                         <a class="nav-link px-5" href="view_events.php"><i class="bi bi-calendar-event"></i></a>
@@ -158,7 +158,7 @@ include 'logged_user.php';
         <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a class="breadcrumb-link text-secondary" href="main_menu.php">Home</a></li>
-                <?php echo (isset($alumnusToViewEmail) && $alumnusToViewEmail != $_SESSION['logged_account']['email']) ? '<li class="breadcrumb-item"><a class="breadcrumb-link text-secondary" href="view_atharv.php">Alumni Friends</a></li>' : ''; ?>
+                <?php echo (isset($alumnusToViewEmail) && $alumnusToViewEmail != $_SESSION['logged_account']['email']) ? '<li class="breadcrumb-item"><a class="breadcrumb-link text-secondary" href="view_alumni.php">Alumni Friends</a></li>' : ''; ?>
                 <li class="breadcrumb-item active" aria-current="page"><?php echo (isset($alumnusToView)) ? $alumnusToViewName : '?'; ?></li>
             </ol>
         </nav>

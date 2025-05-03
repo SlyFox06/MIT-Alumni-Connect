@@ -19,12 +19,9 @@ try {
     $atharv_count = $conn->query("SELECT COUNT(*) FROM user_table")->fetch_row()[0];
     $event_count = $conn->query("SELECT COUNT(*) FROM event_table WHERE event_date >= CURDATE()")->fetch_row()[0];
 
-    // Check if advertisements table exists before querying
-    $job_count = 0;
-    $table_exists = $conn->query("SHOW TABLES LIKE 'advertisements_table'");
-    if ($table_exists && $table_exists->num_rows > 0) {
-        $job_count = $conn->query("SELECT COUNT(*) FROM advertisements_table")->fetch_row()[0];
-    }
+    // Get count of active job advertisements
+    $job_count = $conn->query("SELECT COUNT(*) FROM advertisement_table WHERE status = 'Active' AND (date_to_hide IS NULL OR date_to_hide >= CURDATE())")->fetch_row()[0];
+    
 } catch (mysqli_sql_exception $e) {
     // Handle database errors gracefully
     error_log("Database error: " . $e->getMessage());
