@@ -115,11 +115,10 @@
             unset($_SESSION['flash_mode']);
         }
     ?>
-
-    <!-- Top nav bar -->
-    <nav class="navbar sticky-top navbar-expand-lg" style="background-color: #002c59;">
+<!-- Top nav bar -->
+<nav class="navbar sticky-top navbar-expand-lg mb-5" style="background-color: #002c59;">
         <div class="container">
-            <a class="navbar-brand mx-0 mb-0 h1 text-light" href="main_menu_admin.php">MIT Portal</a>
+            <a class="navbar-brand mx-0 mb-0 h1 text-light" href="main_menu_admin.php">MIT Alumni Portal</a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -128,24 +127,31 @@
             <div class="collapse navbar-collapse me-5" id="navbarSupportedContent">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="main_menu_admin.php"><i class="bi bi-house-door nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link nav-main-admin-active px-5" aria-current="page" href="main_menu_admin.php"><i class="bi bi-house-door-fill nav-bi"></i></a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link nav-main-admin-active px-5" href="manage_accounts.php"><i class="bi bi-people-fill nav-bi position-relative">
+                        <a class="nav-link nav-admin-link px-5" href="manage_accounts.php"><i class="bi bi-people nav-bi-admin position-relative">
                             <?php if (isset($pendingCount) && $pendingCount > 0) { ?> <span class="position-absolute top-0 start-100 badge rounded-pill bg-danger fst-normal fw-medium small-badge"><?php echo $pendingCount; ?></span><?php } ?>
                         </i></a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" aria-current="page" href="manage_events.php"><i class="bi bi-calendar-event nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-5" href="manage_events.php"><i class="bi bi-calendar-event nav-bi-admin"></i></a>
                     </li>
                     <li class="nav-item mx-1">
                         <a class="nav-link nav-admin-link px-5" href="manage_advertisements.php"><i class="bi bi-megaphone nav-bi-admin"></i></a>
+                    </li>
+                    <li class="nav-item mx-1">
+                        <a class="nav-link nav-admin-link px-5" href="manage_gallery.php"><i class="bi bi-images nav-bi-admin"></i></a>
+                    </li>
+                    <li class="nav-item mx-1">
+                        <a class="nav-link nav-admin-link px-5" href="manage_success_stories.php"><i class="bi bi-trophy nav-bi-admin"></i></a>
                     </li>
                 </ul>
             </div>
             <?php include 'nav_user.php' ?>
         </div>
     </nav>
+
 
     <!-- Breadcrumbs -->
     <div class="container my-3">

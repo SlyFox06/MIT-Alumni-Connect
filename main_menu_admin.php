@@ -1,159 +1,240 @@
+<?php
+// This must be the VERY FIRST LINE in the file
+session_start();
+
+// Include admin check file
+require 'logged_admin.php';
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assignment 2 | Main Menu Admin</title>
+    <title>Admin Dashboard | MIT Alumni Portal</title>
 
-    <link rel="stylesheet" href="css/styles.css">
-
-    <!-- Bootstrap CSS --><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <!-- Bootstrap Icons --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <style>
-        .card {
-            width: 23rem;
-            border: none;
-            box-shadow: 0 4px 4px rgba(0,0,0,.2);
-            margin-bottom: 30px;
+        :root {
+            --primary-color: #002c59;
+            --secondary-color: #f8f9fa;
+            --accent-color: #0d6efd;
+            --card-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            --card-hover-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
         }
-
+        
+        body.admin-bg {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-admin-link {
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 4px;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .nav-admin-link:hover, .nav-main-admin-active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-main-admin-active {
+            font-weight: 500;
+        }
+        
+        .card {
+            width: 100%;
+            max-width: 23rem;
+            border: none;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
+        }
+        
+        .card-img-top {
+            height: 180px;
+            object-fit: cover;
+        }
+        
         .card-btn {
             border-top-left-radius: 0;
             border-top-right-radius: 0;
+            background-color: var(--primary-color);
+            border: none;
         }
         
         .row-custom {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 20px;
+            gap: 25px;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-admin-link {
+                padding: 0.5rem 1rem !important;
+            }
         }
     </style>
 </head>
 <body class="admin-bg">
-    <?php
-        session_start();
-
-        include 'logged_admin.php';
-    ?>
-
     <!-- Top nav bar -->
-    <nav class="navbar sticky-top navbar-expand-lg mb-5" style="background-color: #002c59;">
+    <nav class="navbar sticky-top navbar-expand-lg mb-4" style="background-color: var(--primary-color);">
         <div class="container">
-            <a class="navbar-brand mx-0 mb-0 h1 text-light" href="main_menu_admin.php">MIT Alumni Portal</a>
+            <a class="navbar-brand mx-0 mb-0 h1 text-light fw-bold" href="main_menu_admin.php">
+                <i class="bi bi-building-gear me-2"></i>MIT Alumni Portal
+            </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div class="collapse navbar-collapse me-5" id="navbarSupportedContent">
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link nav-main-admin-active px-5" aria-current="page" href="main_menu_admin.php"><i class="bi bi-house-door-fill nav-bi"></i></a>
+                        <a class="nav-link nav-admin-link nav-main-admin-active px-3 px-lg-4" href="main_menu_admin.php">
+                            <i class="bi bi-house-door-fill me-1"></i> Dashboard
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_accounts.php"><i class="bi bi-people nav-bi-admin position-relative">
-                            <?php if (isset($pendingCount) && $pendingCount > 0) { ?> <span class="position-absolute top-0 start-100 badge rounded-pill bg-danger fst-normal fw-medium small-badge"><?php echo $pendingCount; ?></span><?php } ?>
-                        </i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_accounts.php">
+                            <i class="bi bi-people me-1 position-relative"></i>
+                            Accounts
+                            <?php if (isset($pendingCount) && $pendingCount > 0) { ?> 
+                            <span class="badge bg-danger small-badge"><?php echo $pendingCount; ?></span>
+                            <?php } ?>
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_events.php"><i class="bi bi-calendar-event nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_events.php">
+                            <i class="bi bi-calendar-event me-1"></i> Events
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_advertisements.php"><i class="bi bi-megaphone nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_advertisements.php">
+                            <i class="bi bi-megaphone me-1"></i> Ads
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_gallery.php"><i class="bi bi-images nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_gallery.php">
+                            <i class="bi bi-images me-1"></i> Gallery
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_success_stories.php"><i class="bi bi-trophy nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_success_stories.php">
+                            <i class="bi bi-trophy me-1"></i> Stories
+                        </a>
                     </li>
                 </ul>
             </div>
-            <?php include 'nav_user.php' ?>
+
         </div>
     </nav>
 
-    <div class="container slide-left">
+    <div class="container mb-5">
+        <h2 class="mb-4 text-center" style="color: var(--primary-color);">Admin Dashboard</h2>
+        <p class="text-center text-muted mb-4">Manage all aspects of the alumni portal</p>
+        
         <div class="row row-custom">
             
             <!-- Manage Events/News -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/manage_event.PNG" class="card-img-top" alt="Social Event">
+                    <img src="images/manage_event.PNG" class="card-img-top" alt="Events">
                     <div class="card-body">
                         <h5 class="card-title">Events/News</h5>
-                        <p class="card-text">Post and manage events/news to publish the latest updates</p>
+                        <p class="card-text">Post and manage events/news to publish updates</p>
                     </div>
-                    <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="manage_events.php">Manage Events/News</a> </div>
+                    <div class="d-grid gap-2"> 
+                        <a class="btn card-btn btn-primary py-2" href="manage_events.php">
+                            <i class="bi bi-calendar2-plus me-2"></i>Manage Events
+                        </a> 
+                    </div>
                 </div>
             </div>
 
             <!-- Manage User Accounts -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/manage_account.PNG" class="card-img-top" alt="Social Image">
+                    <img src="images/manage_account.PNG" class="card-img-top" alt="Accounts">
                     <div class="card-body">
                         <h5 class="card-title">User Accounts</h5>
-                        <p class="card-text">Manage user account to bolster security measures</p>
+                        <p class="card-text">Manage user accounts and security</p>
                     </div>
-                    <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="manage_accounts.php">Manage Accounts</a> </div>
+                    <div class="d-grid gap-2"> 
+                        <a class="btn card-btn btn-primary py-2" href="manage_accounts.php">
+                            <i class="bi bi-person-gear me-2"></i>Manage Accounts
+                        </a> 
+                    </div>
                 </div>
             </div>
 
             <!-- Manage Advertisements -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/day_of_service.PNG" class="card-img-top" alt="Advertisement Photo">
+                    <img src="images/day_of_service.PNG" class="card-img-top" alt="Advertisements">
                     <div class="card-body">
                         <h5 class="card-title">Advertisements</h5>
-                        <p class="card-text">Manage exclusive job listings, workshops, seminars to nurture others' professional growth</p>
+                        <p class="card-text">Manage job listings and professional events</p>
                     </div>
-                    <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="manage_advertisements.php">Manage Advertisements</a> </div>
+                    <div class="d-grid gap-2"> 
+                        <a class="btn card-btn btn-primary py-2" href="manage_advertisements.php">
+                            <i class="bi bi-badge-ad me-2"></i>Manage Ads
+                        </a> 
+                    </div>
                 </div>
             </div>
             
             <!-- Manage Photo Gallery -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/gallery.jpg" class="card-img-top" alt="Gallery Photo">
+                    <img src="images/gallery.jpg" class="card-img-top" alt="Gallery">
                     <div class="card-body">
                         <h5 class="card-title">Photo Gallery</h5>
-                        <p class="card-text">Manage photos for the Alumni gallery showcasing events and activities</p>
+                        <p class="card-text">Manage photos showcasing events</p>
                     </div>
-                    <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="manage_gallery.php">Manage Photo Gallery</a> </div>
+                    <div class="d-grid gap-2"> 
+                        <a class="btn card-btn btn-primary py-2" href="manage_gallery.php">
+                            <i class="bi bi-camera me-2"></i>Manage Gallery
+                        </a> 
+                    </div>
                 </div>
             </div>
             
             <!-- Manage Success Stories -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/success_stories.jpg" class="card-img-top" alt="Success Stories Photo">
+                    <img src="images/success_stories.jpg" class="card-img-top" alt="Success Stories">
                     <div class="card-body">
-                        <h5 class="card-title">atharv Success Stories</h5>
-                        <p class="card-text">Manage inspiring success stories from our Alumni community</p>
+                        <h5 class="card-title">Success Stories</h5>
+                        <p class="card-text">Manage alumni success stories</p>
                     </div>
-                    <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="manage_success_stories.php">Manage Success Stories</a> </div>
+                    <div class="d-grid gap-2"> 
+                        <a class="btn card-btn btn-primary py-2" href="manage_success_stories.php">
+                            <i class="bi bi-award me-2"></i>Manage Stories
+                        </a> 
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Manage Success Stories -->
-    <div class="col-auto">
-                <div class="card text-center">
-                    <img src="images/success_stories.jpg" class="card-img-top" alt="Success Stories Photo">
-                    <div class="card-body">
-                        <h5 class="card-title">Event Photo ADD</h5>
-                        <p class="card-text">ADD Recent Event Photo</p>
-                    </div>
-                    <div class="d-grid gap-2"> <a role="button" class="btn card-btn btn-primary fw-medium py-2" href="admin_gallery.php">Manage Success Stories</a> </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Boostrap JS --><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
