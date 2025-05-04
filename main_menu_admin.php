@@ -85,9 +85,41 @@ require 'logged_admin.php';
             gap: 25px;
         }
         
+        .recent-photo-card {
+            max-width: 100%;
+            width: 100%;
+        }
+        
+        .recent-photo {
+            max-height: 250px;
+            object-fit: contain;
+        }
+        
+        .logout-btn {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
         @media (max-width: 768px) {
             .nav-admin-link {
                 padding: 0.5rem 1rem !important;
+            }
+            
+            .navbar-nav {
+                margin-bottom: 1rem;
+            }
+            
+            .logout-container {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
             }
         }
     </style>
@@ -141,14 +173,22 @@ require 'logged_admin.php';
                         </a>
                     </li>
                 </ul>
+                
+                <div class="logout-container d-flex">
+                    <form action="logout.php" method="post">
+                        <button type="submit" class="btn logout-btn rounded-pill px-3">
+                            <i class="bi bi-box-arrow-right me-1"></i> Logout
+                        </button>
+                    </form>
+                </div>
             </div>
-
         </div>
     </nav>
 
     <div class="container mb-5">
         <h2 class="mb-4 text-center" style="color: var(--primary-color);">Admin Dashboard</h2>
         <p class="text-center text-muted mb-4">Manage all aspects of the alumni portal</p>
+        
         
         <div class="row row-custom">
             
@@ -163,6 +203,22 @@ require 'logged_admin.php';
                     <div class="d-grid gap-2"> 
                         <a class="btn card-btn btn-primary py-2" href="manage_events.php">
                             <i class="bi bi-calendar2-plus me-2"></i>Manage Events
+                        </a> 
+                    </div>
+                </div>
+            </div>
+
+             <!-- Manage Events/News -->
+             <div class="col-auto">
+                <div class="card text-center">
+                    <img src="" class="card-img-top" alt="Events">
+                    <div class="card-body">
+                        <h5 class="card-title">Recent Image</h5>
+                        <p class="card-text">Post and manage recent events image</p>
+                    </div>
+                    <div class="d-grid gap-2"> 
+                        <a class="btn card-btn btn-primary py-2" href="admin_gallery.php">
+                            <i class="bi bi-calendar2-plus me-2"></i>ADD Photos
                         </a> 
                     </div>
                 </div>

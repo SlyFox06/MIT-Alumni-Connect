@@ -129,3 +129,21 @@ ADD COLUMN reviewed_by INT NULL,
 ADD COLUMN review_notes TEXT NULL,
 ADD COLUMN review_date DATETIME NULL;
 -----------------------------------------------------------------------------------------
+---- Notification 
+CREATE TABLE notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Fetch unread notifications
+SELECT * FROM notifications
+WHERE user_id = 1 AND is_read = FALSE;
+
+-- Mark a notification as read
+UPDATE notifications
+SET is_read = TRUE
+WHERE id = 1;
+-------------------------------------------------------------------------------------------------

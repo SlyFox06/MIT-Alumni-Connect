@@ -503,7 +503,7 @@ body {
                     </a>
                 <?php endif; ?>
                 <a href="add_event_user.php" class="btn btn-primary hover-effect">
-                    <i class="bi bi-plus-lg me-1"></i> Add Advertisement
+                    <i class="bi bi-plus-lg me-1"></i> Add Event
                 </a>
             </div>
         </div>
