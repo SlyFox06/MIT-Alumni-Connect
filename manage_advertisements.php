@@ -1,14 +1,29 @@
+<?php
+// This must be the VERY FIRST LINE in the file
+session_start();
+
+// Include admin check file
+require 'logged_admin.php';
+
+include 'db_controller.php';
+$conn->select_db("atharv");
+
+// Initialize pending count if not set
+if (!isset($pendingCount)) {
+    $pendingCount = 0;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assignment 2 | Manage Advertisement</title>
+    <title>Manage Advertisements | MIT Alumni Portal</title>
 
     <link rel="stylesheet" href="css/styles.css">
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <!-- Animate.css -->
@@ -18,66 +33,206 @@
     <!-- DataTables Bootstrap 5 fixedHeader -->
     <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.bootstrap5.min.css" />
     <style>
+        :root {
+            --primary-color: #002c59;
+            --secondary-color: #f8f9fa;
+            --accent-color: #0d6efd;
+            --card-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            --card-hover-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+        }
+        
+        body.admin-bg {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-admin-link {
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 4px;
+            transition: all var(--transition-speed) ease;
+            padding: 0.5rem 1rem;
+        }
+        
+        .nav-admin-link:hover, .nav-main-admin-active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-main-admin-active {
+            font-weight: 500;
+        }
+        
         .card {
             width: 100%;
             border: none;
-            box-shadow: 0 2px 2px rgba(0,0,0,.08), 0 0 6px rgba(0,0,0,.05);
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
+        }
+        
+        .image-table-container {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+        
+        .image-table-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .logout-btn {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .breadcrumb-link {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        
+        .breadcrumb-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+        
+        .breadcrumb-active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .slider {
+            background-color: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.05);
+        }
+        
+        .dropdown-menu-normal {
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: none;
+        }
+        
+        .badge-category {
+            background-color: #6f42c1;
+        }
+        
+        .badge-status-active {
+            background-color: #198754;
+        }
+        
+        .badge-status-inactive {
+            background-color: #6c757d;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-admin-link {
+                padding: 0.5rem 1rem !important;
+            }
+            
+            .navbar-nav {
+                margin-bottom: 1rem;
+            }
+            
+            .logout-container {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .filter-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .filter-actions {
+                justify-content: space-between;
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body class="admin-bg">
-    <?php
-        include 'db_controller.php';
-        $conn->select_db("atharv");
-
-        session_start();
-
-        include 'logged_admin.php';
-        
-        // Initialize pending count if not set
-        if (!isset($pendingCount)) {
-            $pendingCount = 0;
-        }
-    ?>
-
-    <!-- Top nav bar -->
-    <nav class="navbar sticky-top navbar-expand-lg mb-5" style="background-color: #002c59;">
+    <!-- Enhanced Navbar -->
+    <nav class="navbar sticky-top navbar-expand-lg mb-4" style="background-color: var(--primary-color);">
         <div class="container">
-            <a class="navbar-brand mx-0 mb-0 h1 text-light" href="main_menu_admin.php">MIT Alumni Portal</a>
+            <a class="navbar-brand mx-0 mb-0 h1 text-light fw-bold" href="main_menu_admin.php">
+                <i class="bi bi-building-gear me-2"></i>MIT Alumni Portal
+            </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div class="collapse navbar-collapse me-5" id="navbarSupportedContent">
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link nav-main-admin-active px-5" aria-current="page" href="main_menu_admin.php"><i class="bi bi-house-door-fill nav-bi"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="main_menu_admin.php">
+                            <i class="bi bi-house-door-fill me-1"></i> Dashboard
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_accounts.php"><i class="bi bi-people nav-bi-admin position-relative">
-                            <?php if (isset($pendingCount) && $pendingCount > 0) { ?> <span class="position-absolute top-0 start-100 badge rounded-pill bg-danger fst-normal fw-medium small-badge"><?php echo $pendingCount; ?></span><?php } ?>
-                        </i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_accounts.php">
+                            <i class="bi bi-people me-1 position-relative"></i>
+                            Accounts
+                            <?php if ($pendingCount > 0) { ?> 
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger small-badge"><?php echo $pendingCount; ?></span>
+                            <?php } ?>
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_events.php"><i class="bi bi-calendar-event nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_events.php">
+                            <i class="bi bi-calendar-event me-1"></i> Events
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_advertisements.php"><i class="bi bi-megaphone nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link nav-main-admin-active px-3 px-lg-4" href="manage_advertisements.php">
+                            <i class="bi bi-megaphone me-1"></i> Ads
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_gallery.php"><i class="bi bi-images nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_gallery.php">
+                            <i class="bi bi-images me-1"></i> Gallery
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_success_stories.php"><i class="bi bi-trophy nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_success_stories.php">
+                            <i class="bi bi-trophy me-1"></i> Stories
+                        </a>
                     </li>
                 </ul>
+                
+                <div class="logout-container d-flex">
+                    <form action="logout.php" method="post">
+                        <button type="submit" class="btn logout-btn rounded-pill px-3">
+                            <i class="bi bi-box-arrow-right me-1"></i> Logout
+                        </button>
+                    </form>
+                </div>
             </div>
-            <?php include 'nav_user.php' ?>
         </div>
     </nav>
 
-
+    <!-- Rest of your HTML/PHP code remains the same -->
     <!-- Breadcrumb -->
     <div class="container my-3">
         <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
@@ -164,23 +319,25 @@
 
         <!-- Filter -->
         <div class="container mt-3 py-3 px-4 card bg-white fw-medium <?php echo (isset($_POST['eventID']) || isset($_GET['filterStatus']) || isset($_GET['filterCategory']) || isset($_GET['search'])) ? NULL : 'slide-left' ?>">
-            <form id="eventsFilterForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="GET">
+            <form id="eventsFilterForm" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]);?>" method="GET" class="filter-container d-flex flex-wrap align-items-center">
                 <!-- Status (All, Active, Inactive) -->
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="filterStatus" id="filterStatus1" value="All" <?php echo (isset($_GET['filterStatus']) && $_GET['filterStatus'] == 'All') ? 'checked' : ((!isset($_GET['filterCategory'])) ? 'checked' : NULL ) ?>>
-                    <label class="form-check-label" for="filterStatus1">All</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="filterStatus" id="filterStatus2" value="Active" <?php echo (isset($_GET['filterStatus']) && $_GET['filterStatus'] == 'Active') ? 'checked' : NULL ?>>
-                    <label class="form-check-label badge text-bg-success" for="filterStatus2">Active</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="filterStatus" id="filterStatus3" value="Inactive" <?php echo (isset($_GET['filterStatus']) && $_GET['filterStatus'] == 'Inactive') ? 'checked' : NULL ?>>
-                    <label class="form-check-label badge text-bg-secondary" for="filterStatus3">Inactive</label>
+                <div class="d-flex flex-wrap align-items-center me-3">
+                    <div class="form-check form-check-inline me-2">
+                        <input class="form-check-input" type="radio" name="filterStatus" id="filterStatus1" value="All" <?php echo (isset($_GET['filterStatus']) && $_GET['filterStatus'] == 'All') ? 'checked' : ((!isset($_GET['filterCategory'])) ? 'checked' : NULL ) ?>>
+                        <label class="form-check-label" for="filterStatus1">All</label>
+                    </div>
+                    <div class="form-check form-check-inline me-2">
+                        <input class="form-check-input" type="radio" name="filterStatus" id="filterStatus2" value="Active" <?php echo (isset($_GET['filterStatus']) && $_GET['filterStatus'] == 'Active') ? 'checked' : NULL ?>>
+                        <label class="form-check-label badge text-bg-success" for="filterStatus2">Active</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="filterStatus" id="filterStatus3" value="Inactive" <?php echo (isset($_GET['filterStatus']) && $_GET['filterStatus'] == 'Inactive') ? 'checked' : NULL ?>>
+                        <label class="form-check-label badge text-bg-secondary" for="filterStatus3">Inactive</label>
+                    </div>
                 </div>
 
                 <!-- Departments (All, Engineering, IT, Business, Design) -->
-                <div class="form-check-inline ms-4">
+                <div class="form-check-inline me-3">
                     <div class="input-group">
                         <label class="input-group-text" for="filterCategory"><i class="bi bi-buildings"></i></label>
                         <select class="form-select fw-medium" id="filterCategory" name="filterCategory" aria-label="Time filter">
@@ -193,13 +350,15 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary fw-medium mb-1">Display List</button>
+                <div class="filter-actions d-flex align-items-center">
+                    <button type="submit" class="btn btn-primary fw-medium mb-1 me-2">Display List</button>
 
-                <!-- Search box -->
-                <div class="form-check-inline me-0 float-end">
-                    <div class="input-group">
-                        <input type="text" class="form-control py-2" placeholder="Search advertisements" name="search" aria-label="Search" aria-describedby="button-addon2" value="<?php echo isset($_GET['search']) ? htmlspecialchars(trim($_GET['search'])) : ''; ?>">
-                        <button class="btn btn-primary px-3 py-2" type="submit" id="button-addon2"><i class="bi bi-search"></i></button>
+                    <!-- Search box -->
+                    <div class="form-check-inline">
+                        <div class="input-group">
+                            <input type="text" class="form-control py-2" placeholder="Search advertisements" name="search" aria-label="Search" aria-describedby="button-addon2" value="<?php echo isset($_GET['search']) ? htmlspecialchars(trim($_GET['search'])) : ''; ?>">
+                            <button class="btn btn-primary px-3 py-2" type="submit" id="button-addon2"><i class="bi bi-search"></i></button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -266,10 +425,10 @@
                         while($row = $allAdvertisements->fetch_assoc()) {
                             // Set badges for Active and Inactive
                             $status = $row['status'] == "Active" 
-                                ? '<span class="form-check-label badge text-bg-success">Active</span>'
-                                : '<span class="form-check-label badge text-bg-secondary">Inactive</span>';
+                                ? '<span class="badge badge-status-active">Active</span>'
+                                : '<span class="badge badge-status-inactive">Inactive</span>';
                                 
-                            $category = '<span class="form-check-label badge text-bg-info">'.htmlspecialchars($row['category']).'</span>';
+                            $category = '<span class="badge badge-category">'.htmlspecialchars($row['category']).'</span>';
                             
                             // Action dropdown
                             $actionDropdown = '
@@ -315,9 +474,9 @@
     </div>
     
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- DataTables -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.js"></script>
     <!-- DataTables Bootstrap 5 -->

@@ -1,3 +1,71 @@
+<?php
+// This must be the VERY FIRST LINE in the file
+session_start();
+
+// Include admin check file
+require 'logged_admin.php';
+
+include 'db_controller.php';
+$conn->select_db("atharv");
+
+// POST request (also handles the deletes)
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    // Assigns GET from POST (which was assigned from GET)
+    if (isset($_POST['filterStatus']))
+        $_GET['filterStatus'] = $_POST['filterStatus'];
+    if (isset($_POST['search']))
+        $_GET['search'] = $_POST['search'];
+
+    // Set SQL statement depending on the action selected
+    if (isset($_POST['email']) && isset($_POST['action'])) {
+        if ($_POST['action'] == 'approve')
+            $SQLUpdateAccount = "UPDATE account_table SET status = 'Approved' WHERE email = ?";
+
+        elseif ($_POST['action'] == 'reject')
+            $SQLUpdateAccount = "UPDATE account_table SET status = 'Rejected' WHERE email = ?";
+
+        elseif ($_POST['action'] == 'delete')
+            $SQLUpdateAccount = "DELETE FROM user_table WHERE email = ?";
+
+        // Modify the user in db
+        try {
+            $SQLUpdateAccount = $conn->prepare($SQLUpdateAccount);
+            $SQLUpdateAccount->bind_param("s", $_POST['email']);
+
+            if ($SQLUpdateAccount->execute()) {
+                // Flash message for delete
+                if ($_POST['action'] == 'delete'){
+                    $_SESSION['flash_mode'] = "alert-success";
+                    $_SESSION['flash'] = "User <span class='fw-medium'>".$_POST['name']."</span> removed successfully.";
+                }
+
+                // Update Pending counter for approve/reject for navbar badge
+                $rows = $conn->query("SELECT COUNT(*) AS count FROM account_table WHERE status = 'Pending' AND type != 'admin'");
+                if ($rows) {
+                    $rowResults = $rows->fetch_assoc();
+                    $pendingCount = $rowResults['count'];
+                }
+            } else {
+                // Flash message for delete
+                if ($_POST['action'] == 'delete'){
+                    $_SESSION['flash_mode'] = "alert-warning";
+                    $_SESSION['flash'] = "An error has occured removing User <span class='fw-medium'>".$_POST['name']."</span>.";
+                }
+            }
+        } catch (Exception $e) {
+            $_SESSION['flash_mode'] = "alert-warning";
+            $_SESSION['flash'] = "An error has occured modifying User <span class='fw-medium'>".$_POST['name']."</span>.";
+        }
+    }
+}
+
+// Prepare flash message
+$tempFlash;
+if (isset($_SESSION['flash_mode'])){
+    $tempFlash = $_SESSION['flash_mode'];
+    unset($_SESSION['flash_mode']);
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,16 +75,61 @@
 
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Bootstrap CSS --><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <!-- Bootstrap Icons --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Animate.css --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
-    <!-- DataTables Bootstrap 5 --><link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
-    <!-- DataTables Bootstrap 5 fixedHeader --><link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.bootstrap5.min.css" />
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Animate.css -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <!-- DataTables Bootstrap 5 -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" />
+    <!-- DataTables Bootstrap 5 fixedHeader -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.bootstrap5.min.css" />
     <style>
+        :root {
+            --primary-color: #002c59;
+            --secondary-color: #f8f9fa;
+            --accent-color: #0d6efd;
+            --card-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            --card-hover-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --transition-speed: 0.3s;
+        }
+        
+        body.admin-bg {
+            background-color: #f5f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar {
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-admin-link {
+            color: rgba(255, 255, 255, 0.85);
+            border-radius: 4px;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .nav-admin-link:hover, .nav-main-admin-active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .nav-main-admin-active {
+            font-weight: 500;
+        }
+        
         .card {
             width: 100%;
             border: none;
-            box-shadow: 0 2px 2px rgba(0,0,0,.08), 0 0 6px rgba(0,0,0,.05);
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
         }
 
         /* Vertical align row cells to middle */
@@ -44,114 +157,124 @@
             padding-bottom: 0 !important;
             padding-right: 0 !important;
         }
+        
+        .logout-btn {
+            background-color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .breadcrumb-link {
+            color: #6c757d;
+            text-decoration: none;
+        }
+        
+        .breadcrumb-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+        
+        .breadcrumb-active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .image-table-container {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+        
+        .image-table-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-admin-link {
+                padding: 0.5rem 1rem !important;
+            }
+            
+            .navbar-nav {
+                margin-bottom: 1rem;
+            }
+            
+            .logout-container {
+                margin-top: 1rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+        }
     </style>
 </head>
 <body class="admin-bg">
-    <?php
-        include 'db_controller.php';
-        $conn->select_db("atharv");
-
-        session_start();
-
-        include 'logged_admin.php';
-    ?>
-
-    <?php
-        // POST request (also handles the deletes)
-        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            // Assigns GET from POST (which was assigned from GET)
-            if (isset($_POST['filterStatus']))
-                $_GET['filterStatus'] = $_POST['filterStatus'];
-            if (isset($_POST['search']))
-                $_GET['search'] = $_POST['search'];
-
-            // Set SQL statement depending on the action selected
-            if (isset($_POST['email']) && isset($_POST['action'])) {
-                if ($_POST['action'] == 'approve')
-                    $SQLUpdateAccount = "UPDATE account_table SET status = 'Approved' WHERE email = ?";
-
-                elseif ($_POST['action'] == 'reject')
-                    $SQLUpdateAccount = "UPDATE account_table SET status = 'Rejected' WHERE email = ?";
-
-                elseif ($_POST['action'] == 'delete')
-                    $SQLUpdateAccount = "DELETE FROM user_table WHERE email = ?";
-
-                // Modify the user in db
-                try {
-                    $SQLUpdateAccount = $conn->prepare($SQLUpdateAccount);
-                    $SQLUpdateAccount->bind_param("s", $_POST['email']);
-
-                    if ($SQLUpdateAccount->execute()) {
-                        // Flash message for delete
-                        if ($_POST['action'] == 'delete'){
-                            $_SESSION['flash_mode'] = "alert-success";
-                            $_SESSION['flash'] = "User <span class='fw-medium'>".$_POST['name']."</span> removed successfully.";
-                        }
-
-                        // Update Pending counter for approve/reject for navbar badge
-                        $rows = $conn->query("SELECT COUNT(*) AS count FROM account_table WHERE status = 'Pending' AND type != 'admin'");
-                        if ($rows) {
-                            $rowResults = $rows->fetch_assoc();
-                            $pendingCount = $rowResults['count'];
-                        }
-                    } else {
-                        // Flash message for delete
-                        if ($_POST['action'] == 'delete'){
-                            $_SESSION['flash_mode'] = "alert-warning";
-                            $_SESSION['flash'] = "An error has occured removing User <span class='fw-medium'>".$_POST['name']."</span>.";
-                        }
-                    }
-                } catch (Exception $e) {
-                    $_SESSION['flash_mode'] = "alert-warning";
-                    $_SESSION['flash'] = "An error has occured modifying User <span class='fw-medium'>".$_POST['name']."</span>.";
-                }
-            }
-        }
-
-        // Prepare flash message
-        $tempFlash;
-        if (isset($_SESSION['flash_mode'])){
-            $tempFlash = $_SESSION['flash_mode'];
-            unset($_SESSION['flash_mode']);
-        }
-    ?>
-<!-- Top nav bar -->
-<nav class="navbar sticky-top navbar-expand-lg mb-5" style="background-color: #002c59;">
+    <!-- Enhanced Navbar -->
+    <nav class="navbar sticky-top navbar-expand-lg mb-4" style="background-color: var(--primary-color);">
         <div class="container">
-            <a class="navbar-brand mx-0 mb-0 h1 text-light" href="main_menu_admin.php">MIT Alumni Portal</a>
+            <a class="navbar-brand mx-0 mb-0 h1 text-light fw-bold" href="main_menu_admin.php">
+                <i class="bi bi-building-gear me-2"></i>MIT Alumni Portal
+            </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div class="collapse navbar-collapse me-5" id="navbarSupportedContent">
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav mx-auto">
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link nav-main-admin-active px-5" aria-current="page" href="main_menu_admin.php"><i class="bi bi-house-door-fill nav-bi"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="main_menu_admin.php">
+                            <i class="bi bi-house-door-fill me-1"></i> Dashboard
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_accounts.php"><i class="bi bi-people nav-bi-admin position-relative">
-                            <?php if (isset($pendingCount) && $pendingCount > 0) { ?> <span class="position-absolute top-0 start-100 badge rounded-pill bg-danger fst-normal fw-medium small-badge"><?php echo $pendingCount; ?></span><?php } ?>
-                        </i></a>
+                        <a class="nav-link nav-admin-link nav-main-admin-active px-3 px-lg-4" href="manage_accounts.php">
+                            <i class="bi bi-people me-1 position-relative"></i>
+                            Accounts
+                            <?php if (isset($pendingCount) && $pendingCount > 0) { ?> 
+                            <span class="badge bg-danger small-badge"><?php echo $pendingCount; ?></span>
+                            <?php } ?>
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_events.php"><i class="bi bi-calendar-event nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_events.php">
+                            <i class="bi bi-calendar-event me-1"></i> Events
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_advertisements.php"><i class="bi bi-megaphone nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_advertisements.php">
+                            <i class="bi bi-megaphone me-1"></i> Ads
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_gallery.php"><i class="bi bi-images nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_gallery.php">
+                            <i class="bi bi-images me-1"></i> Gallery
+                        </a>
                     </li>
                     <li class="nav-item mx-1">
-                        <a class="nav-link nav-admin-link px-5" href="manage_success_stories.php"><i class="bi bi-trophy nav-bi-admin"></i></a>
+                        <a class="nav-link nav-admin-link px-3 px-lg-4" href="manage_success_stories.php">
+                            <i class="bi bi-trophy me-1"></i> Stories
+                        </a>
                     </li>
                 </ul>
+                
+                <div class="logout-container d-flex">
+                    <form action="logout.php" method="post">
+                        <button type="submit" class="btn logout-btn rounded-pill px-3">
+                            <i class="bi bi-box-arrow-right me-1"></i> Logout
+                        </button>
+                    </form>
+                </div>
             </div>
-            <?php include 'nav_user.php' ?>
         </div>
     </nav>
-
 
     <!-- Breadcrumbs -->
     <div class="container my-3">
@@ -280,13 +403,20 @@
         </div>
     </div>
     
-    <!-- Boostrap JS --><script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-    <!-- jQuery --><script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <!-- DataTables --><script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.js"></script>
-    <!-- DataTables Bootstrap 5 --><script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-    <!-- Moment.js --><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.2/moment.min.js"></script>
-    <!-- DataTables Bootstrap 5 fixedHeader --><script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
-    <!-- Axios --><script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- Boostrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.js"></script>
+    <!-- DataTables Bootstrap 5 -->
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Moment.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.2/moment.min.js"></script>
+    <!-- DataTables Bootstrap 5 fixedHeader -->
+    <script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
+    <!-- Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
         // DataTables init
         $('#eventTable').DataTable({
