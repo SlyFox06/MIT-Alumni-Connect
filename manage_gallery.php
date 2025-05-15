@@ -77,7 +77,7 @@ function handleAddEvent() {
 
 // Function to handle adding photos to an event
 function handleAddPhotos() {
-    global $conn, $gd_enabled, $webp_supported;
+    global $conn, $gd_enabled;
     
     if (empty($_POST['event_id']) || empty($_FILES['gallery_images'])) {
         throw new Exception("Event ID and photos are required.");
@@ -87,6 +87,12 @@ function handleAddPhotos() {
     $targetDir = "uploads/gallery_photos/";
     if (!file_exists($targetDir)) {
         mkdir($targetDir, 0777, true);
+    }
+    
+    // Create thumbs directory if it doesn't exist
+    $thumbDir = $targetDir . 'thumbs/';
+    if (!file_exists($thumbDir)) {
+        mkdir($thumbDir, 0777, true);
     }
     
     $uploadedFiles = [];
@@ -126,7 +132,17 @@ function handleAddPhotos() {
         
         // Upload file
         if (move_uploaded_file($files["tmp_name"][$i], $targetFile)) {
-            $uploadedFiles[] = $targetFile;
+            $thumbnailPath = null;
+            
+            // Create thumbnail if GD is enabled
+            if ($gd_enabled) {
+                $thumbnailPath = createThumbnail($targetFile, $targetDir);
+            }
+            
+            $uploadedFiles[] = [
+                'path' => $targetFile,
+                'thumb' => $thumbnailPath
+            ];
         }
     }
     
@@ -135,10 +151,10 @@ function handleAddPhotos() {
     }
     
     // Insert into database
-    $stmt = $conn->prepare("INSERT INTO alumni_gallery_photos (event_id, image_path) VALUES (?, ?)");
+    $stmt = $conn->prepare("INSERT INTO alumni_gallery_photos (event_id, image_path, thumbnail_path) VALUES (?, ?, ?)");
     
     foreach ($uploadedFiles as $file) {
-        $stmt->bind_param("is", $eventId, $file);
+        $stmt->bind_param("iss", $eventId, $file['path'], $file['thumb']);
         if (!$stmt->execute()) {
             // If one insert fails, continue with others but note the error
             error_log("Failed to insert photo: " . $stmt->error);
@@ -148,9 +164,75 @@ function handleAddPhotos() {
     $stmt->close();
     
     $_SESSION['flash_mode'] = "alert-success";
-    $_SESSION['flash'] = count($uploadedFiles) . " photos added successfully!";
+    $_SESSION['flash'] = count($uploadedFiles) . " photos added successfully!" . (!$gd_enabled ? " (Thumbnails not created - GD library not available)" : "");
     header("Location: manage_gallery.php");
     exit();
+}
+
+// Function to create thumbnail
+function createThumbnail($sourcePath, $targetDir) {
+    $thumbDir = $targetDir . 'thumbs/';
+    $thumbnailPath = $thumbDir . 'thumb_' . basename($sourcePath);
+    
+    // Get original image dimensions
+    list($width, $height) = getimagesize($sourcePath);
+    
+    // Calculate thumbnail dimensions (300px width, maintain aspect ratio)
+    $newWidth = 300;
+    $newHeight = (int)($height * ($newWidth / $width));
+    
+    // Create image resource based on file type
+    $extension = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
+    switch ($extension) {
+        case 'jpg':
+        case 'jpeg':
+            $sourceImage = imagecreatefromjpeg($sourcePath);
+            break;
+        case 'png':
+            $sourceImage = imagecreatefrompng($sourcePath);
+            break;
+        case 'gif':
+            $sourceImage = imagecreatefromgif($sourcePath);
+            break;
+        default:
+            return null;
+    }
+    
+    if (!$sourceImage) {
+        return null;
+    }
+    
+    // Create thumbnail
+    $thumbnail = imagecreatetruecolor($newWidth, $newHeight);
+    
+    // Preserve transparency for PNG/GIF
+    if ($extension == 'png' || $extension == 'gif') {
+        imagecolortransparent($thumbnail, imagecolorallocatealpha($thumbnail, 0, 0, 0, 127));
+        imagealphablending($thumbnail, false);
+        imagesavealpha($thumbnail, true);
+    }
+    
+    imagecopyresampled($thumbnail, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+    
+    // Save thumbnail
+    switch ($extension) {
+        case 'jpg':
+        case 'jpeg':
+            imagejpeg($thumbnail, $thumbnailPath, 85);
+            break;
+        case 'png':
+            imagepng($thumbnail, $thumbnailPath, 8);
+            break;
+        case 'gif':
+            imagegif($thumbnail, $thumbnailPath);
+            break;
+    }
+    
+    // Free memory
+    imagedestroy($sourceImage);
+    imagedestroy($thumbnail);
+    
+    return $thumbnailPath;
 }
 
 // Function to update event status
@@ -191,13 +273,16 @@ function handleDeleteEvent() {
     
     // First get all photo paths to delete files later
     $photoPaths = [];
-    $stmt = $conn->prepare("SELECT image_path FROM alumni_gallery_photos WHERE event_id = ?");
+    $stmt = $conn->prepare("SELECT image_path, thumbnail_path FROM alumni_gallery_photos WHERE event_id = ?");
     $stmt->bind_param("i", $id);
     $stmt->execute();
     $result = $stmt->get_result();
     
     while ($row = $result->fetch_assoc()) {
         $photoPaths[] = $row['image_path'];
+        if (!empty($row['thumbnail_path'])) {
+            $photoPaths[] = $row['thumbnail_path'];
+        }
     }
     $stmt->close();
     
@@ -234,7 +319,7 @@ function handleDeleteEvent() {
     }
     
     foreach ($photoPaths as $path) {
-        if (file_exists($path)) {
+        if (!empty($path) && file_exists($path)) {
             unlink($path);
         }
     }
@@ -562,7 +647,7 @@ $conn->close();
 
         <?php if (!$gd_enabled): ?>
             <div class="alert alert-warning mt-3">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i> GD library is not enabled. Image processing features are limited.
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> GD library is not enabled. Thumbnail generation will be skipped.
             </div>
         <?php endif; ?>
 
@@ -877,4 +962,4 @@ $conn->close();
         }
     </script>
 </body>
-</html> 
+</html>

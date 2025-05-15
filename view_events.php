@@ -69,6 +69,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['event_id'])) {
     }
 }
 
+// Get current date for comparison
+date_default_timezone_set('Asia/Kuching');
+$todayDate = date('Y-m-d');
+
 // Apply filters
 $filterType = $_GET['filterType'] ?? 'All';
 $filterTime = $_GET['filterTime'] ?? 'All';
@@ -86,8 +90,6 @@ if ($filterType != 'All') {
 }
 
 if ($filterTime != 'All') {
-    date_default_timezone_set('Asia/Kuching');
-    $todayDate = date('Y-m-d');
     if ($filterTime == 'Upcoming') {
         $conditions[] = "event_date >= ?";
         $params[] = $todayDate;
@@ -648,12 +650,12 @@ body {
                                             <button class="btn btn-success btn-sm w-100" disabled>
                                                 <i class="bi bi-check-circle"></i> Registered
                                             </button>
-                                        <?php else: ?>
+                                        <?php elseif ($event['event_date'] >= $todayDate): ?>
                                             <button class="btn btn-primary btn-sm w-100 signup-btn hover-effect" data-event-id="<?= $event['id'] ?>">
                                                 Sign Up
                                             </button>
                                             
-                                            <div class="registration-form" id="form-<?= $event['id'] ?>">
+                                            <div class="registration-form" id="form-<?= $event['id'] ?>" style="display: none;">
                                                 <form method="POST">
                                                     <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
                                                     
@@ -709,6 +711,10 @@ body {
                                                     </div>
                                                 </form>
                                             </div>
+                                        <?php else: ?>
+                                            <button class="btn btn-secondary btn-sm w-100" disabled>
+                                                Event Ended
+                                            </button>
                                         <?php endif; ?>
                                     </div>
                                 <?php endif; ?>
@@ -838,35 +844,32 @@ body {
             });
         });
 
-        // Add this script to your existing JavaScript section
+        // Image modal functionality
+        document.querySelectorAll('.card-img-container').forEach(container => {
+            const img = container.querySelector('.card-img-top');
+            
+            // Click to show full image
+            container.addEventListener('click', function() {
+                const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+                document.getElementById('modalImage').src = img.src;
+                modal.show();
+            });
+            
+            // Add hover effect
+            container.style.cursor = 'zoom-in';
+        });
 
-// Image modal functionality
-document.querySelectorAll('.card-img-container').forEach(container => {
-    const img = container.querySelector('.card-img-top');
-    
-    // Click to show full image
-    container.addEventListener('click', function() {
-        const modal = new bootstrap.Modal(document.getElementById('imageModal'));
-        document.getElementById('modalImage').src = img.src;
-        modal.show();
-    });
-    
-    // Add hover effect
-    container.style.cursor = 'zoom-in';
-});
+        // Optional: Add keyboard accessibility for the modal
+        document.getElementById('imageModal').addEventListener('shown.bs.modal', function() {
+            document.querySelector('.close-modal-btn').focus();
+        });
 
-// Optional: Add keyboard accessibility for the modal
-document.getElementById('imageModal').addEventListener('shown.bs.modal', function() {
-    document.querySelector('.close-modal-btn').focus();
-});
-
-document.querySelector('.close-modal-btn').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' || e.key === ' ') {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('imageModal'));
-        modal.hide();
-    }
-});
-
+        document.querySelector('.close-modal-btn').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('imageModal'));
+                modal.hide();
+            }
+        });
     </script>
 </body>
 </html>

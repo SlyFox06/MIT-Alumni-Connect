@@ -1,6 +1,12 @@
 <?php
 session_start();
-require 'db_controller.php'; // Changed to require for critical files
+require 'db_controller.php';
+
+// Check if user is logged in
+if (!isset($_SESSION['logged_account'])) {
+    header("Location: login.php");
+    exit();
+}
 
 $email = $_SESSION['logged_account']['email'];
 
@@ -21,24 +27,25 @@ $stmt = $conn->prepare("
 ");
 
 if (!$stmt) {
-    die("Prepare failed: " . $conn->error);
+    error_log("Prepare failed: " . $conn->error);
+    die("An error occurred while preparing the database query.");
 }
 
-if ($stmt->execute()) {
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        // Verify thumbnail exists
-        if (!empty($row['thumbnail_path']) && !file_exists($row['thumbnail_path'])) {
-            $row['thumbnail_path'] = null;
-        }
-        $events[] = $row;
+if (!$stmt->execute()) {
+    error_log("Execute failed: " . $stmt->error);
+    die("An error occurred while fetching events.");
+}
+
+$result = $stmt->get_result();
+while ($row = $result->fetch_assoc()) {
+    // Verify thumbnail exists
+    if (!empty($row['thumbnail_path']) && !file_exists($_SERVER['DOCUMENT_ROOT'] . $row['thumbnail_path'])) {
+        $row['thumbnail_path'] = null;
     }
-} else {
-    die("Execute failed: " . $stmt->error);
+    $events[] = $row;
 }
 
 $stmt->close();
-// Don't close connection yet as we might need it for the modal
 ?>
 
 <!DOCTYPE html>
@@ -49,14 +56,10 @@ $stmt->close();
     <title>Photo Gallery | MIT Alumni Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
-
-:root {
+        :root {
             --primary: #4361ee;
             --primary-light: #4f6cff;
             --secondary: #3f37c9;
@@ -77,51 +80,47 @@ $stmt->close();
 
         /* Navbar Styles */
         .navbar {
-        background: white;
-        box-shadow:0 0 5px rgba(0,0,0,.3);
-        padding: 0.8rem 1rem !important;
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        z-index: 1030;
-        min-height: 60px;
-        display: flex;
-        align-items: center;
-    }
+            background: white;
+            box-shadow: 0 0 5px rgba(0,0,0,.3);
+            padding: 0.8rem 1rem !important;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
 
-    .navbar-nav {
-    margin-left: auto; /* Pushes items to the right */
-    display: flex;
-    align-items: center; /* Vertical centering for nav items */
-}
+        .navbar-nav {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+        }
         
-.navbar-brand {
-        font-weight: 600;
-        color: #4361ee;
-        font-size: 1.3rem;
-        letter-spacing: 0.5px;
-        margin-right: 3rem; /* Add more space after the brand */
-    }
+        .navbar-brand {
+            font-weight: 600;
+            color: #4361ee;
+            font-size: 1.3rem;
+            letter-spacing: 0.5px;
+            margin-right: 3rem;
+        }
 
-    .navbar-brand:hover {
+        .navbar-brand:hover {
             color: #3D1165;
             transition: 0.5s ease;
         }
 
-        /* .navbar-brand span {
-            color: var(--secondary);
-        } */
-
         .nav-item {
-    margin-left: -3px;
-    margin-right: -3px;
-}
+            margin-left: -3px;
+            margin-right: -3px;
+        }
 
-.navbar .container {
-    display: flex;
-    align-items: center;
-}
+        .navbar .container {
+            display: flex;
+            align-items: center;
+        }
 
         .nav-link {
             font-weight: 500;
@@ -134,26 +133,33 @@ $stmt->close();
         }
 
         .nav-link:hover {
-                color: var(--secondary);
-                /* slight color shift */
-                background: rgba(67, 97, 238, 0.15);
-                transform: translateY(-2px);
-            }
-        
-
-        .nav-button:hover {
+            color: var(--secondary);
+            background: rgba(67, 97, 238, 0.15);
             transform: translateY(-2px);
-            background-color:rgba(67, 97, 238, 0.15);
-            color:rgba(67, 97, 238, 0.15);
-        }
-
-        .nav-icon {
-            font-size: 1.2rem;
         }
 
         .gallery-container {
             padding: 2rem 0;
         }
+        
+        .page-title {
+            font-weight: 600;
+            color: var(--secondary);
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+        }
+        
+        .page-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: var(--primary);
+        }
+
         .event-card {
             transition: transform 0.3s ease;
             margin-bottom: 2rem;
@@ -161,22 +167,28 @@ $stmt->close();
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             cursor: pointer;
             height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
         }
+        
         .event-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 16px rgba(0,0,0,0.15);
         }
+        
         .event-thumbnail {
             width: 100%;
             height: 200px;
             object-fit: cover;
             border-radius: 4px 4px 0 0;
         }
+        
         .carousel-item img {
             max-height: 70vh;
             object-fit: contain;
             margin: 0 auto;
         }
+        
         .carousel-control-prev, .carousel-control-next {
             background-color: rgba(0,0,0,0.3);
             width: 50px;
@@ -185,33 +197,86 @@ $stmt->close();
             top: 50%;
             transform: translateY(-50%);
         }
+        
         .carousel-caption {
             background-color: rgba(0,0,0,0.5);
             border-radius: 5px;
         }
+        
         .empty-gallery {
             text-align: center;
             padding: 4rem;
             color: #6c757d;
         }
+        
         .view-gallery-btn {
             transition: all 0.3s ease;
+            background-color: var(--primary);
+            border: none;
         }
+        
+        .view-gallery-btn:hover {
+            background-color: var(--secondary);
+            transform: translateY(-2px);
+        }
+        
         .default-thumbnail {
             display: flex;
             align-items: center;
             justify-content: center;
             height: 200px;
             background-color: #f8f9fa;
+            color: #6c757d;
+        }
+        
+        .photo-count-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .card-text {
+            flex-grow: 1;
+        }
+        
+        .event-date {
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .navbar-brand {
+                margin-right: 1rem;
+                font-size: 1.1rem;
+            }
+            
+            .nav-link {
+                padding: 0.5rem;
+                margin: 0 5px;
+            }
+            
+            .gallery-container {
+                padding: 1rem 0;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation would go here -->
-       <!-- Navigation Bar -->
+    <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container">
-            <a class="navbar-brand" href="#">
+            <a class="navbar-brand" href="main_menu.php">
                 <span>MIT</span> ALUMNI PORTAL
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -231,7 +296,6 @@ $stmt->close();
                     <li class="nav-item">
                         <a class="nav-link" href="view_advertisements.php"><i class="bi bi-briefcase me-1"></i> Opportunities</a>
                     </li>
-                    
                     <li class="nav-item">
                         <a class="nav-link" href="view_profile.php?email=<?php echo htmlspecialchars($email); ?>"><i class="bi bi-person me-1"></i> Profile</a>
                     </li>
@@ -244,38 +308,44 @@ $stmt->close();
     </nav>
 
     <div class="container gallery-container">
-        <h1 class="mb-4">Photo Gallery</h1>
+        <h1 class="page-title animate__animated animate__fadeIn">Photo Gallery</h1>
         
         <?php if (empty($events)): ?>
-            <div class="empty-gallery">
+            <div class="empty-gallery animate__animated animate__fadeIn">
                 <i class="bi bi-images" style="font-size: 3rem;"></i>
                 <h3 class="mt-3">No Events Available</h3>
                 <p>Check back later for upcoming gallery events.</p>
             </div>
         <?php else: ?>
-            <div class="row">
+            <div class="row animate__animated animate__fadeIn">
                 <?php foreach ($events as $event): ?>
-                    <div class="col-md-4 mb-4">
+                    <div class="col-lg-4 col-md-6 mb-4">
                         <div class="card event-card h-100">
-                            <?php if (!empty($event['thumbnail_path'])): ?>
-                                <img src="<?php echo htmlspecialchars($event['thumbnail_path']); ?>" 
-                                     class="event-thumbnail" 
-                                     alt="<?php echo htmlspecialchars($event['event_name']); ?>"
-                                     onerror="this.src='assets/default-image.jpg'">
-                            <?php else: ?>
-                                <div class="default-thumbnail">
-                                    <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-                                </div>
-                            <?php endif; ?>
+                            <div class="position-relative">
+                                <?php if (!empty($event['thumbnail_path'])): ?>
+                                    <img src="<?php echo htmlspecialchars($event['thumbnail_path']); ?>" 
+                                         class="event-thumbnail" 
+                                         alt="<?php echo htmlspecialchars($event['event_name']); ?>"
+                                         onerror="this.src='assets/default-image.jpg'">
+                                <?php else: ?>
+                                    <div class="default-thumbnail">
+                                        <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                    </div>
+                                <?php endif; ?>
+                                <span class="photo-count-badge">
+                                    <i class="bi bi-image-fill me-1"></i><?php echo (int)$event['photo_count']; ?>
+                                </span>
+                            </div>
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title"><?php echo htmlspecialchars($event['event_name']); ?></h5>
-                                <p class="card-text text-muted">
-                                    <small><?php echo date('F j, Y', strtotime($event['event_date'])); ?></small>
+                                <p class="event-date">
+                                    <i class="bi bi-calendar-event me-1"></i><?php echo date('F j, Y', strtotime($event['event_date'])); ?>
                                 </p>
-                                <p class="card-text flex-grow-1"><?php echo htmlspecialchars($event['description']); ?></p>
-                                <button class="btn btn-primary view-gallery-btn mt-auto" 
-                                        data-event-id="<?php echo htmlspecialchars($event['id']); ?>">
-                                    View Gallery (<?php echo (int)$event['photo_count']; ?> photos)
+                                <p class="card-text"><?php echo htmlspecialchars(mb_strimwidth($event['description'], 0, 150, '...')); ?></p>
+                                <button class="btn btn-primary view-gallery-btn mt-auto align-self-start" 
+                                        data-event-id="<?php echo htmlspecialchars($event['id']); ?>"
+                                        data-event-name="<?php echo htmlspecialchars($event['event_name']); ?>">
+                                    <i class="bi bi-collection-play me-1"></i> View Gallery
                                 </button>
                             </div>
                         </div>
@@ -322,19 +392,32 @@ $stmt->close();
         const viewButtons = document.querySelectorAll('.view-gallery-btn');
         const galleryModal = new bootstrap.Modal(document.getElementById('galleryModal'));
         
+        // Simple HTML escape function
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
         viewButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const eventId = this.getAttribute('data-event-id');
+                const eventName = this.getAttribute('data-event-name');
+                
                 if (!eventId) {
                     console.error('No event ID found on button');
                     return;
                 }
                 
-                loadEventGallery(eventId);
+                loadEventGallery(eventId, eventName);
             });
         });
         
-        function loadEventGallery(eventId) {
+        function loadEventGallery(eventId, eventName) {
             const modalTitle = document.getElementById('galleryModalLabel');
             const carouselInner = document.getElementById('carousel-inner');
             
@@ -353,7 +436,13 @@ $stmt->close();
             fetch(`get_event_photos.php?event_id=${encodeURIComponent(eventId)}`)
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        return response.text().then(text => {
+                            throw new Error(`Expected JSON but got: ${text.substring(0, 100)}...`);
+                        });
                     }
                     return response.json();
                 })
@@ -362,8 +451,8 @@ $stmt->close();
                         throw new Error(data?.error || 'Failed to load gallery');
                     }
                     
-                    // Update modal title
-                    modalTitle.textContent = data.event?.event_name || 'Event Gallery';
+                    // Update modal title with event name
+                    modalTitle.textContent = eventName || data.event?.event_name || 'Event Gallery';
                     
                     // Clear loading state
                     carouselInner.innerHTML = '';
@@ -391,11 +480,17 @@ $stmt->close();
                                  onerror="this.onerror=null;this.src='assets/default-image.jpg'"
                                  alt="Event photo ${index + 1}">
                             <div class="carousel-caption d-none d-md-block">
-                                <p>${index + 1} of ${data.photos.length}</p>
+                                <p>${index + 1} of ${data.photos.length} | ${escapeHtml(photo.caption || '')}</p>
                             </div>
                         `;
                         carouselInner.appendChild(item);
                     });
+                    
+                    // Initialize carousel if not already initialized
+                    const carouselElement = document.getElementById('eventCarousel');
+                    if (!carouselElement._carousel) {
+                        new bootstrap.Carousel(carouselElement);
+                    }
                 })
                 .catch(error => {
                     console.error('Error loading gallery:', error);
@@ -403,20 +498,12 @@ $stmt->close();
                         <div class="carousel-item active">
                             <div class="d-flex justify-content-center align-items-center" style="height: 400px;">
                                 <p class="text-danger">Error: ${escapeHtml(error.message)}</p>
+                                ${error.message.includes('JSON') ? 
+                                    '<p class="small text-muted mt-2">The server may be experiencing issues.</p>' : ''}
                             </div>
                         </div>
                     `;
                 });
-        }
-        
-        // Simple HTML escape function
-        function escapeHtml(unsafe) {
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
         }
     });
     </script>

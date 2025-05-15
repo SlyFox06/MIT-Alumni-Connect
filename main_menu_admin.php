@@ -208,10 +208,10 @@ require 'logged_admin.php';
                 </div>
             </div>
 
-             <!-- Manage Events/News -->
+             <!-- Manage Recent  Events/News -->
              <div class="col-auto">
                 <div class="card text-center">
-                    <img src="" class="card-img-top" alt="Events">
+                    <img src="images/day_of_service.PNG" class="card-img-top" alt="Events">
                     <div class="card-body">
                         <h5 class="card-title">Recent Image</h5>
                         <p class="card-text">Post and manage recent events image</p>
@@ -227,7 +227,16 @@ require 'logged_admin.php';
             <!-- Manage User Accounts -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/manage_account.PNG" class="card-img-top" alt="Accounts">
+                    <img src="
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    images\photo-gallery-icon-16.jpg" class="card-img-top" alt="Accounts">
                     <div class="card-body">
                         <h5 class="card-title">User Accounts</h5>
                         <p class="card-text">Manage user accounts and security</p>
@@ -259,7 +268,7 @@ require 'logged_admin.php';
             <!-- Manage Photo Gallery -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/gallery.jpg" class="card-img-top" alt="Gallery">
+                    <img src="images\photo-gallery-icon-16.jpg" class="card-img-top" alt="Gallery">
                     <div class="card-body">
                         <h5 class="card-title">Photo Gallery</h5>
                         <p class="card-text">Manage photos showcasing events</p>
@@ -275,7 +284,7 @@ require 'logged_admin.php';
             <!-- Manage Success Stories -->
             <div class="col-auto">
                 <div class="card text-center">
-                    <img src="images/success_stories.jpg" class="card-img-top" alt="Success Stories">
+                    <img src="images/success-stories-1.png" class="card-img-top" alt="Success Stories">
                     <div class="card-body">
                         <h5 class="card-title">Success Stories</h5>
                         <p class="card-text">Manage alumni success stories</p>

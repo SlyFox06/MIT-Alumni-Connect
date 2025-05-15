@@ -7,7 +7,12 @@ require 'logged_admin.php';
 
 include 'db_controller.php';
 $conn->select_db("atharv");
+
+// Get current date for comparison
+date_default_timezone_set('Asia/Kuching');
+$todayDate = date('Y-m-d');
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -126,6 +131,44 @@ $conn->select_db("atharv");
             border: none;
         }
         
+        /* Custom form fields styling */
+        .form-field-container {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-field-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        /* Status badges */
+        .badge-upcoming {
+            background-color: #198754;
+            color: white;
+        }
+        
+        .badge-past {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        /* Registration form preview */
+        .registration-form-preview {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .form-preview-item {
+            margin-bottom: 10px;
+        }
+        
         @media (max-width: 768px) {
             .nav-admin-link {
                 padding: 0.5rem 1rem !important;
@@ -204,7 +247,6 @@ $conn->select_db("atharv");
         </div>
     </nav>
 
-    <!-- Rest of your HTML/PHP code remains the same -->
     <!-- Breadcrumb -->
     <div class="container my-3">
         <nav style="--bs-breadcrumb-divider: url(&#34;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Cpath d='M2.5 0L1 1.5 3.5 4 1 6.5 2.5 8l4-4-4-4z' fill='%236c757d'/%3E%3C/svg%3E&#34;);" aria-label="breadcrumb">
@@ -270,7 +312,14 @@ $conn->select_db("atharv");
         <!-- Page title -->
         <div class="row <?php echo (isset($_POST['eventID']) || isset($_GET['filterType']) || isset($_GET['filterTime']) || isset($_GET['search'])) ? NULL : 'slide-left' ?>">
             <div class="col"><h1>Manage Events/News</h1></div>
-            <div class="col-auto align-self-center"><a role="button" href="add_event.php" class="btn btn-primary fw-medium px-4 py-2"><i class="bi bi-plus-lg me-2" style="-webkit-text-stroke: 0.25px;"></i>Add Events/News</a></div>
+            <div class="col-auto align-self-center">
+                <a role="button" href="add_event.php" class="btn btn-primary fw-medium px-4 py-2">
+                    <i class="bi bi-plus-lg me-2" style="-webkit-text-stroke: 0.25px;"></i>Add Events/News
+                </a>
+                <button type="button" class="btn btn-success fw-medium px-4 py-2 ms-2" data-bs-toggle="modal" data-bs-target="#addFormModal">
+                    <i class="bi bi-file-earmark-plus me-2" style="-webkit-text-stroke: 0.25px;"></i>Add Form Field
+                </button>
+            </div>
         </div>
 
         <!-- Filter -->
@@ -327,7 +376,6 @@ $conn->select_db("atharv");
 
                 // Time filter for Events/News
                 if (isset($_GET['filterTime']) && $_GET['filterTime'] != 'All') {
-                    $todayDate = date('Y-m-d');
                     if ($_GET['filterTime'] == 'Upcoming')
                         $filterTime = "event_date >= '" . $todayDate . "'";
                     elseif ($_GET['filterTime'] == 'Past')
@@ -357,7 +405,6 @@ $conn->select_db("atharv");
 
                 // Query the database with the WHERE from previous
                 $allEventsNews = $conn->query("SELECT * FROM event_table $whereClause");
-                $conn->close();
             ?>
 
             <!-- Table -->
@@ -370,10 +417,71 @@ $conn->select_db("atharv");
                         <th class="pe-5">Title</th>
                         <th>Date</th>
                         <th>Location</th>
+                        <th>Status</th>
                         <th></th>
                     </tr>
                 </thead>
             </table>
+        </div>
+    </div>
+    
+    <!-- Add Form Field Modal -->
+    <div class="modal fade" id="addFormModal" tabindex="-1" aria-labelledby="addFormModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addFormModalLabel">Add Registration Form Field</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formFieldForm">
+                        <div class="mb-3">
+                            <label for="formEventSelect" class="form-label">Select Event</label>
+                            <select class="form-select" id="formEventSelect" required>
+                                <option value="" selected disabled>Select an event</option>
+                                <?php
+                                $upcomingEvents = $conn->query("SELECT * FROM event_table WHERE type = 'Event' AND event_date >= '$todayDate'");
+                                while($event = $upcomingEvents->fetch_assoc()) {
+                                    echo '<option value="'.$event['id'].'">'.$event['title'].' ('.date('d/m/Y', strtotime($event['event_date'])).')</option>';
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="fieldLabel" class="form-label">Field Label</label>
+                            <input type="text" class="form-control" id="fieldLabel" placeholder="Enter field label" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="fieldType" class="form-label">Field Type</label>
+                            <select class="form-select" id="fieldType" required>
+                                <option value="" selected disabled>Select field type</option>
+                                <option value="text">Text Input</option>
+                                <option value="textarea">Text Area</option>
+                                <option value="checkbox">Checkbox</option>
+                                <option value="radio">Radio Buttons</option>
+                                <option value="select">Dropdown Select</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="optionsContainer" style="display: none;">
+                            <label for="fieldOptions" class="form-label">Options (one per line)</label>
+                            <textarea class="form-control" id="fieldOptions" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="fieldRequired">
+                            <label class="form-check-label" for="fieldRequired">Required Field</label>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Add Field</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
     
@@ -394,7 +502,54 @@ $conn->select_db("atharv");
     <script>
         // Display description when opening rows' slider
         function format(row) {
-            return ('<div class="slider"><div class="row"> <div class="col-auto ms-3 my-3 me-0 pe-0"><div class="image-table-container"><img src="images/'+row[8]+'" class="img-fluid" alt="event_news_photo"></div></div> <div class="col mx-0 px-0"><p class="fw-light ps-4 pe-5 pt-2 pb-3">'+row[7]+'</p></div> </div></div>');
+            // Parse custom fields if they exist
+            let customFieldsHtml = '';
+            if (row[9] && row[9] !== 'null') {
+                try {
+                    const customFields = JSON.parse(row[9]);
+                    if (customFields && customFields.length > 0) {
+                        customFieldsHtml = '<div class="registration-form-preview mt-3">';
+                        customFieldsHtml += '<h6 class="fw-bold mb-3">Registration Form Fields:</h6>';
+                        
+                        customFields.forEach(field => {
+                            customFieldsHtml += '<div class="form-preview-item">';
+                            customFieldsHtml += `<strong>${field.label}</strong> `;
+                            customFieldsHtml += `<span class="badge bg-light text-dark">${field.type}</span>`;
+                            if (field.required) {
+                                customFieldsHtml += ' <span class="badge bg-danger">Required</span>';
+                            }
+                            
+                            if (field.options) {
+                                customFieldsHtml += '<div class="mt-1 text-muted small">';
+                                customFieldsHtml += field.options.join(', ');
+                                customFieldsHtml += '</div>';
+                            }
+                            
+                            customFieldsHtml += '</div>';
+                        });
+                        
+                        customFieldsHtml += '</div>';
+                    }
+                } catch (e) {
+                    console.error('Error parsing custom fields:', e);
+                }
+            }
+            
+            return (`
+                <div class="slider">
+                    <div class="row">
+                        <div class="col-auto ms-3 my-3 me-0 pe-0">
+                            <div class="image-table-container">
+                                <img src="images/${row[8]}" class="img-fluid" alt="event_news_photo">
+                            </div>
+                        </div>
+                        <div class="col mx-0 px-0">
+                            <p class="fw-light ps-4 pe-5 pt-2 pb-3">${row[7]}</p>
+                            ${customFieldsHtml}
+                        </div>
+                    </div>
+                </div>
+            `);
         }
 
         // DataTables init
@@ -414,7 +569,7 @@ $conn->select_db("atharv");
             order: [[1, "desc"]],
             columnDefs: [
                 {
-                    "targets": [0, 6],
+                    "targets": [0, 7],
                     "orderable": false,
                 },
                 {
@@ -456,6 +611,14 @@ $conn->select_db("atharv");
                 $eventDate = date('m/d/Y', strtotime($row['event_date']));
                 echo "var eventDate = new Date('{$eventDate}');\n";
 
+                // Determine status
+                $statusBadge = '';
+                if ($row['event_date'] >= $todayDate) {
+                    $statusBadge = '<span class="badge badge-upcoming">Upcoming</span>';
+                } else {
+                    $statusBadge = '<span class="badge badge-past">Past</span>';
+                }
+
                 // Dropdown actions to edit and delete
                 $actionDropdown = '
                     <div class="dropstart me-4">
@@ -466,7 +629,17 @@ $conn->select_db("atharv");
                             <li><form action="edit_event.php" method="GET">
                                 <input type="hidden" name="id" value="'.$row['id'].'">
                                 <button type="submit" class="dropdown-item py-2 pe-5"><i class="bi bi-pencil me-3" style="font-size: 1.25rem; -webkit-text-stroke: 0.25px;"></i><div class="fw-medium">Edit</div></button>
-                            </a></form></li>
+                            </a></form></li>';
+                
+                // Only show form field option for upcoming events
+                if ($row['event_date'] >= $todayDate && $row['type'] == 'Event') {
+                    $actionDropdown .= '
+                            <li><button type="button" class="dropdown-item py-2 pe-5" onclick="showAddFormFieldModal('.$row['id'].')">
+                                <i class="bi bi-file-earmark-plus me-3" style="font-size: 1.25rem; -webkit-text-stroke: 0.25px;"></i><div class="fw-medium">Add Form Field</div>
+                            </button></li>';
+                }
+                
+                $actionDropdown .= '
                             <li><button type="button" class="dropdown-item py-2 pe-5" onclick="deleteEventNews('.$row['id'].', \''.$row['type'].'\', this)">
                                 <i class="bi bi-trash me-3 text-danger" style="font-size: 1.25rem; -webkit-text-stroke: 0.25px;"></i><div class="fw-medium text-danger">Delete</div>
                             </button></li>
@@ -474,17 +647,17 @@ $conn->select_db("atharv");
                     </div>
                 ';
 
-                // Set badges for Active and Inactive
+                // Set badges for Event and News
                 if ($row['type'] == "Event")
-                    $type = '<span class="form-check-label badge text-bg-success" for="filterType2">Events</span>';
+                    $type = '<span class="form-check-label badge text-bg-success">Events</span>';
                 elseif ($row['type'] == "News")
-                    $type = '<span class="form-check-label badge text-bg-warning" for="filterType3">News</span>';
+                    $type = '<span class="form-check-label badge text-bg-warning">News</span>';
 
                 // Expandable rows to display more information
                 $expandCollapse = '<a class="dt-control text-secondary" style="cursor: pointer;"><i class="bi bi-chevron-down"></i></a>';
 
                 // Add the row
-                echo "table.row.add([`$expandCollapse`, {$row['id']}, `$type`, '{$row['title']}', '".date('d/m/Y', strtotime($row['event_date']))."', '{$row['location']}', `$actionDropdown`, '{$row['description']}', '{$row['photo']}']).draw().nodes().to$().hide().fadeIn();\n";
+                echo "table.row.add([`$expandCollapse`, {$row['id']}, `$type`, '{$row['title']}', '".date('d/m/Y', strtotime($row['event_date']))."', '{$row['location']}', `$statusBadge`, `$actionDropdown`, '{$row['description']}', '{$row['photo']}', '".addslashes($row['custom_fields'])."']).draw().nodes().to$().hide().fadeIn();\n";
             }
         ?>
 
@@ -505,20 +678,80 @@ $conn->select_db("atharv");
         
         // Function to delete the selected row from the table in DB and DataTables, deletes photo from storage too
         function deleteEventNews(id, type, row) {
-            axios.delete(`manage_events.php`, {
-                data: {
-                    id: id,
-                }
+            if (confirm(`Are you sure you want to delete this ${type.toLowerCase()}?`)) {
+                axios.delete(`manage_events.php`, {
+                    data: {
+                        id: id,
+                    }
+                })
+                .then(response => {
+                    // Gracefully remove the row from the DataTables
+                    var rowToRemove = $(row).parents('tr');
+                    rowToRemove.fadeOut(250, () => {
+                        table.row(rowToRemove).remove().draw();
+                    })
+                    displayFlashMessage("alert-success", type+" "+id+" deleted successfully.");
+                })
+                .catch(error => {
+                    displayFlashMessage("alert-danger", "Error deleting "+type.toLowerCase()+" "+id);
+                });
+            }
+        }
+        
+        // Show/hide options field based on field type selection
+        $('#fieldType').change(function() {
+            const showOptions = ['radio', 'select'].includes($(this).val());
+            $('#optionsContainer').toggle(showOptions);
+        });
+        
+        // Show add form field modal with event pre-selected
+        function showAddFormFieldModal(eventId) {
+            $('#formEventSelect').val(eventId);
+            $('#addFormModal').modal('show');
+        }
+        
+        // Handle form field submission
+        $('#formFieldForm').submit(function(e) {
+            e.preventDefault();
+            
+            const eventId = $('#formEventSelect').val();
+            const fieldLabel = $('#fieldLabel').val();
+            const fieldType = $('#fieldType').val();
+            const fieldRequired = $('#fieldRequired').is(':checked');
+            
+            let fieldOptions = [];
+            if (['radio', 'select'].includes(fieldType)) {
+                fieldOptions = $('#fieldOptions').val().split('\n').filter(option => option.trim() !== '');
+            }
+            
+            // Create field object
+            const newField = {
+                label: fieldLabel,
+                type: fieldType,
+                required: fieldRequired
+            };
+            
+            if (fieldOptions.length > 0) {
+                newField.options = fieldOptions;
+            }
+            
+            // Send AJAX request to update the event with new field
+            axios.post('update_event_fields.php', {
+                eventId: eventId,
+                newField: newField
             })
             .then(response => {
-                // Gracefully remove the row from the DataTables
-                var rowToRemove = $(row).parents('tr');
-                rowToRemove.fadeOut(250, () => {
-                    table.row(rowToRemove).remove().draw();
-                })
-                displayFlashMessage("alert-success", type+" "+id+" deleted successfully.");
+                if (response.data.success) {
+                    // Refresh the page to show updated fields
+                    location.reload();
+                } else {
+                    alert('Error adding field: ' + response.data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error adding field: ' + error.response.data.message);
             });
-        }
+        });
     </script>
 </body>
 </html>
